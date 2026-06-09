@@ -130,7 +130,7 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # 8. NGINX REVERSE PROXY / LOAD BALANCER
+  # 8. NGINX REVERSE PROXY / LOAD BALANCER (MODIFICADO para SSL)
   nginx:
     image: nginx:latest
     container_name: nginx
@@ -138,11 +138,19 @@ services:
       gateway-service:
         condition: service_started
     ports:
-      - "80:80"   # Puerto HTTP
+      - "80:80"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx.local.conf:/etc/nginx/nginx.conf:ro
     restart: unless-stopped
 
+  # 9. CERTBOT (NUEVO - Para obtener certificados)
+  certbot:
+    image: certbot/certbot
+    profiles: [ "ssl" ]
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email davidalexd1234@gmail.com --agree-tos --no-eff-email --staging -d cobox.duckdns.org
 
   # 10. PROMETHEUS
   prometheus:
@@ -173,3 +181,6 @@ services:
 networks:
   default:
     name: microservices_network
+
+volumes:
+  data: # Para la persistencia de los certificados
