@@ -56,4 +56,4 @@ steps:
     run: |
       docker push \
       $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
-```
+
