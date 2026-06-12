@@ -41,8 +41,15 @@ jobs:
       - name: Build Jar
         run: mvn clean package -DskipTests
 
+      - name: Debug Workspace
+        run: |
+          pwd
+          ls -la
+          find . -name "Dockerfile"
+
       - name: Build Docker Image
-        run: docker build -t $ECR_REPOSITORY .
+        run: |
+          docker build -f Dockerfile -t $ECR_REPOSITORY .
 
       - name: Tag Docker Image
         run: |
