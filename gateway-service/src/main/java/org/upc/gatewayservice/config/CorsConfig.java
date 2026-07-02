@@ -2,21 +2,23 @@ package org.upc.gatewayservice.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 public class CorsConfig {
 
     @Bean
+    @Order(Ordered.HIGHEST_PRECEDENCE)
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration corsConfig = new CorsConfiguration();
 
-        // Permitir orígenes (localhost con HTTP y HTTPS, más tu dominio y frontend)
-        corsConfig.setAllowedOriginPatterns(Arrays.asList(
+        corsConfig.setAllowedOriginPatterns(List.of(
                 "http://localhost",
                 "http://localhost:*",
                 "https://localhost",
@@ -25,17 +27,16 @@ public class CorsConfig {
                 "http://127.0.0.1:*",
                 "https://127.0.0.1",
                 "https://127.0.0.1:*",
-                "https://coboxsv.duckdns.org/",
-                "https://frontend-cobox-sv.vercel.app"
+                "https://coboxsv.duckdns.org",
+                "https://frontend-cobox-sv.vercel.app",
+                "https://*.vercel.app"
         ));
 
-        // Permitir todos los métodos HTTP
-        corsConfig.setAllowedMethods(Arrays.asList(
+        corsConfig.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"
         ));
 
-        // Permitir todos los headers necesarios para Swagger y JWT
-        corsConfig.setAllowedHeaders(Arrays.asList(
+        corsConfig.setAllowedHeaders(List.of(
                 "Authorization",
                 "Content-Type",
                 "Accept",
@@ -45,18 +46,15 @@ public class CorsConfig {
                 "Access-Control-Request-Headers"
         ));
 
-        // Exponer headers en la respuesta
-        corsConfig.setExposedHeaders(Arrays.asList(
+        corsConfig.setExposedHeaders(List.of(
                 "Authorization",
                 "Content-Type",
-                "Access-Control-Allow-Origin",
-                "Access-Control-Allow-Credentials"
+                "X-RateLimit-Limit",
+                "X-RateLimit-Remaining",
+                "X-RateLimit-Reset"
         ));
 
-        // Permitir credenciales (cookies, headers de autorización)
         corsConfig.setAllowCredentials(true);
-
-        // Tiempo de cache para la respuesta preflight (en segundos)
         corsConfig.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -65,4 +63,3 @@ public class CorsConfig {
         return new CorsWebFilter(source);
     }
 }
-

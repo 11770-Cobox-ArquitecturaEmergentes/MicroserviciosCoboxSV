@@ -130,11 +130,11 @@ services:
   # 8. CERTBOT (CORREGIDO: No necesita container_name en despliegue)
   certbot:
     image: certbot/certbot
-    # ELIMINADO: container_name: certbot (si lo tenía)
+    profiles: [ "ssl" ]
     volumes:
       - /opt/cobox/data/certbot/conf:/etc/letsencrypt
       - /opt/cobox/data/certbot/www:/var/www/certbot
-    command: certonly --webroot --webroot-path=/var/www/certbot --email davidalexd1234@gmail.com --agree-tos --no-eff-email -d cobox.duckdns.org
+    command: certonly --webroot --webroot-path=/var/www/certbot --email jhonfcbm.1900@gmail.com --agree-tos --no-eff-email -d coboxsv.duckdns.org
 
   # 9. PROMETHEUS (Mantenemos container_name)
   prometheus:

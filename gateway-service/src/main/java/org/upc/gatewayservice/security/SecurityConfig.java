@@ -32,8 +32,11 @@ public class SecurityConfig {
                         new PathPatternParserServerWebExchangeMatcher("/actuator/**")
                 ))
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .cors(ServerHttpSecurity.CorsSpec::disable) // Usaremos CorsWebFilter en su lugar
-                .authorizeExchange(exchange -> exchange.anyExchange().permitAll());
+                .cors(Customizer.withDefaults())
+                .authorizeExchange(exchange -> exchange
+                        .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .anyExchange().permitAll()
+                );
 
         return http.build();
     }
@@ -43,7 +46,7 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .cors(ServerHttpSecurity.CorsSpec::disable) // Usaremos CorsWebFilter en su lugar
+                .cors(Customizer.withDefaults())
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyExchange().authenticated()
