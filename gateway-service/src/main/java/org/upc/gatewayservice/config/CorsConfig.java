@@ -25,11 +25,8 @@ public class CorsConfig {
                 "http://127.0.0.1:*",
                 "https://127.0.0.1",
                 "https://127.0.0.1:*",
-                "https://cobox.duckdns.org",
-                "http://cobox.duckdns.org",
-                "https://app-cobox.web.app",
-                "https://*.web.app",
-                "https://*.firebaseapp.com"
+                "https://coboxsv.duckdns.org/",
+                "https://frontend-cobox-sv.vercel.app"
         ));
 
         // Permitir todos los métodos HTTP
