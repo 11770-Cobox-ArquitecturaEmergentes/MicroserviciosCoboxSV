@@ -105,7 +105,7 @@ services:
       - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
       - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8084/actuator/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8085/actuator/health" ]
       interval: 10s
       timeout: 3s
       retries: 25
@@ -125,7 +125,7 @@ services:
       - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
       - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8085/actuator/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8086/actuator/health" ]
       interval: 10s
       timeout: 3s
       retries: 25
