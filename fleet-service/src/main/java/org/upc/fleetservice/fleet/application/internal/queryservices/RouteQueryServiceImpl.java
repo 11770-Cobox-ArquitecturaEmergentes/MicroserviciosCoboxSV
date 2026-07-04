@@ -1,6 +1,7 @@
 package org.upc.fleetservice.fleet.application.internal.queryservices;
 
 import org.springframework.stereotype.Service;
+import org.upc.fleetservice.fleet.domain.exceptions.DriverNotFoundException;
 import org.upc.fleetservice.fleet.domain.model.aggregates.Route;
 import org.upc.fleetservice.fleet.domain.model.queries.GetAllRoutesByDriverId;
 import org.upc.fleetservice.fleet.domain.model.queries.GetAllRoutesQuery;
@@ -36,7 +37,7 @@ public class RouteQueryServiceImpl   implements RouteQueryService {
     @Override
     public List<Route> handle(GetAllRoutesByDriverId query) {
         var driver=driverRepository.findById(query.driverId());
-        if(driver.isEmpty()) throw new IllegalArgumentException("Driver not found");
+        if(driver.isEmpty()) throw new DriverNotFoundException(query.driverId());
 
         return routeRepository.findAllByDriver(driver.get());
     }
