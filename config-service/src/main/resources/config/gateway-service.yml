@@ -91,6 +91,21 @@ spring:
           filters:
             - PreserveHostHeader
 
+        - id: support-service-docs
+          uri: lb://support-service
+          predicates:
+            - Path=/support-service/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+            - PreserveHostHeader
+
+        - id: support-service-route
+          uri: lb://support-service
+          predicates:
+            - Path=/api/v1/tickets/**
+          filters:
+            - PreserveHostHeader
+
 springdoc:
   swagger-ui:
     enabled: true
@@ -103,6 +118,8 @@ springdoc:
         url: /delivery-service/v3/api-docs
       - name: fleet-service
         url: /fleet-service/v3/api-docs
+      - name: support-service
+        url: /support-service/v3/api-docs
 
 # ==========================================
 # Rate Limiting Configuration
@@ -138,6 +155,11 @@ gateway:
 
       # Client Endpoints
       "[/api/v1/client/**]":
+        max-requests: 50
+        window-seconds: 10
+
+      # Ticket Endpoints
+      "[/api/v1/tickets/**]":
         max-requests: 50
         window-seconds: 10
 
