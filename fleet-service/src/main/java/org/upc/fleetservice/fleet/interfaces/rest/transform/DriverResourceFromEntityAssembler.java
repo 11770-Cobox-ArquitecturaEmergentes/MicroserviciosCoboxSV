@@ -8,6 +8,7 @@ public class DriverResourceFromEntityAssembler {
     public static DriverResource toResourceFromEntity(Driver entity){
         return new DriverResource(
                 entity.getId(),
+                entity.getEmail(),
                 entity.getLicenceNumber(),
                 entity.getDriverStatus().name()
         );

@@ -20,7 +20,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
     </properties>
 
@@ -33,5 +33,6 @@
         <module>delivery-service</module>
         <module>incident-service</module>
         <module>maintenance-service</module>
+        <module>support-service</module>
     </modules>
 </project>

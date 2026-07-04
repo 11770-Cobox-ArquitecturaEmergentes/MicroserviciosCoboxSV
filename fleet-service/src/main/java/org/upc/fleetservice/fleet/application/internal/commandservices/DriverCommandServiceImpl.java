@@ -1,6 +1,7 @@
 package org.upc.fleetservice.fleet.application.internal.commandservices;
 
 import org.springframework.stereotype.Service;
+import org.upc.fleetservice.fleet.domain.exceptions.DriverAlreadyExistsException;
 import org.upc.fleetservice.fleet.domain.exceptions.DriverNotFoundException;
 import org.upc.fleetservice.fleet.domain.model.aggregates.Driver;
 import org.upc.fleetservice.fleet.domain.model.commands.CreateDriverCommand;
@@ -18,6 +19,12 @@ public class DriverCommandServiceImpl implements DriverCommandService {
 
     @Override
     public Long handle(CreateDriverCommand command) {
+        if (driverRepository.existsByEmail(command.email())) {
+            throw new DriverAlreadyExistsException("email", command.email());
+        }
+        if (driverRepository.existsByLicenceNumber(command.licenceNumber())) {
+            throw new DriverAlreadyExistsException("licenceNumber", command.licenceNumber());
+        }
         var driver = new Driver(command);
         driverRepository.save(driver);
         return driver.getId();

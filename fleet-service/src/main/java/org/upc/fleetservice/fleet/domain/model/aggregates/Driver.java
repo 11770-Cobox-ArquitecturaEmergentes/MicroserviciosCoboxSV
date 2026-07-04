@@ -13,6 +13,9 @@ import org.upc.fleetservice.shared.domain.model.aggregates.AuditableAbstractAggr
 @Getter
 public class Driver extends AuditableAbstractAggregateRoot<Driver> {
 
+    @Column(unique = true)
+    private String email;
+
     private DriverStatus driverStatus;
     private String licenceNumber;
 
@@ -20,6 +23,7 @@ public class Driver extends AuditableAbstractAggregateRoot<Driver> {
 
     }
     public Driver(CreateDriverCommand command) {
+        this.email = command.email();
         this.licenceNumber = command.licenceNumber();
         this.driverStatus = DriverStatus.AVAILABLE;
     }
