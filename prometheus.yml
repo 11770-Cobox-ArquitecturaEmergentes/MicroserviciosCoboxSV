@@ -5,4 +5,4 @@ scrape_configs:
   - job_name: 'microservices_cobox'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: [ 'iam-service:8081', 'fleet-service:8082', 'delivery-service:8083', 'incident-service:8084', 'maintenance-service:8085', 'gateway-service:8080', 'eureka-service:8761', 'config-service:8888' ]
+      - targets: [ 'iam-service:8081', 'fleet-service:8082', 'delivery-service:8083', 'support-service:8084', 'incident-service:8085', 'maintenance-service:8086', 'gateway-service:8080', 'eureka-service:8761', 'config-service:8888' ]
