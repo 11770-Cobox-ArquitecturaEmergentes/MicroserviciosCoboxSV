@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY target/*.jar /app/app.jar
 ENV SPRING_PROFILES_ACTIVE=default
