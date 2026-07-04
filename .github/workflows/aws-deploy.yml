@@ -55,7 +55,7 @@ jobs:
           TAG="$IMAGE_TAG"
           
           # Array con los nombres exactos de las carpetas de tu monorepo
-          declare -a svc=("config-service" "eureka-service" "iam-service" "fleet-service" "delivery-service" "gateway-service")
+          declare -a svc=("config-service" "eureka-service" "iam-service" "fleet-service" "delivery-service" "incident-service" "maintenance-service" "gateway-service")
 
           for s in "${svc[@]}"; do
             echo "Construyendo y subiendo imagen para: $s"

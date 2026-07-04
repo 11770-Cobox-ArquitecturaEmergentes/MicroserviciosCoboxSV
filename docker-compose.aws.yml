@@ -91,7 +91,47 @@ services:
       retries: 25
     restart: unless-stopped
 
-  # 6. GATEWAY SERVICE (Ya estaba corregido)
+  # 6. INCIDENT SERVICE (CORREGIDO: Eliminado container_name para permitir Scaling)
+  incident-service:
+    image: "${ECR}/incident-service:${TAG:-latest}"
+    depends_on:
+      iam-service:
+        condition: service_healthy
+    env_file:
+      - /opt/cobox/env/incident.env
+    environment:
+      - SPRING_CLOUD_CONFIG_RETRY_ENABLED=true
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=40
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8084/actuator/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 25
+    restart: unless-stopped
+
+  # 7. MAINTENANCE SERVICE (CORREGIDO: Eliminado container_name para permitir Scaling)
+  maintenance-service:
+    image: "${ECR}/maintenance-service:${TAG:-latest}"
+    depends_on:
+      iam-service:
+        condition: service_healthy
+    env_file:
+      - /opt/cobox/env/maintenance.env
+    environment:
+      - SPRING_CLOUD_CONFIG_RETRY_ENABLED=true
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=40
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8085/actuator/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 25
+    restart: unless-stopped
+
+  # 8. GATEWAY SERVICE (Ya estaba corregido)
   gateway-service:
     image: "${ECR}/gateway-service:${TAG:-latest}"
     # ELIMINADO: container_name (correcto)
@@ -103,6 +143,10 @@ services:
       fleet-service:
         condition: service_healthy
       delivery-service:
+        condition: service_healthy
+      incident-service:
+        condition: service_healthy
+      maintenance-service:
         condition: service_healthy
     healthcheck:
       test: [ "CMD","curl","-f","http://localhost:8080/actuator/health" ]
