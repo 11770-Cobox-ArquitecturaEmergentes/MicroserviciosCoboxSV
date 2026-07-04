@@ -91,6 +91,11 @@ spring:
           filters:
             - PreserveHostHeader
 
+        - id: incident-service-docs
+          uri: lb://incident-service
+          predicates:
+            - Path=/incident-service/v3/api-docs/**
+            
         - id: support-service-docs
           uri: lb://support-service
           predicates:
@@ -99,6 +104,25 @@ spring:
             - StripPrefix=1
             - PreserveHostHeader
 
+        - id: incident-service-route
+          uri: lb://incident-service
+          predicates:
+            - Path=/api/v1/incidents/**
+          filters:
+            - PreserveHostHeader
+
+        - id: maintenance-service-docs
+          uri: lb://maintenance-service
+          predicates:
+            - Path=/maintenance-service/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+            - PreserveHostHeader
+
+        - id: maintenance-service-route
+          uri: lb://maintenance-service
+          predicates:
+            - Path=/api/v1/maintenance-schedules/**,/api/v1/maintenance-orders/**
         - id: support-service-route
           uri: lb://support-service
           predicates:
@@ -118,6 +142,10 @@ springdoc:
         url: /delivery-service/v3/api-docs
       - name: fleet-service
         url: /fleet-service/v3/api-docs
+      - name: incident-service
+        url: /incident-service/v3/api-docs
+      - name: maintenance-service
+        url: /maintenance-service/v3/api-docs
       - name: support-service
         url: /support-service/v3/api-docs
 
@@ -150,6 +178,20 @@ gateway:
 
       # Order Endpoints
       "[/api/v1/orders/**]":
+        max-requests: 50
+        window-seconds: 10
+
+      # Incident Endpoints
+      "[/api/v1/incidents/**]":
+        max-requests: 50
+        window-seconds: 10
+
+      # Maintenance Endpoints
+      "[/api/v1/maintenance-schedules/**]":
+        max-requests: 50
+        window-seconds: 10
+
+      "[/api/v1/maintenance-orders/**]":
         max-requests: 50
         window-seconds: 10
 

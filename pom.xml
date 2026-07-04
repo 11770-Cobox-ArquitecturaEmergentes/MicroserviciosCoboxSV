@@ -31,6 +31,8 @@
         <module>iam-service</module>
         <module>fleet-service</module>
         <module>delivery-service</module>
+        <module>incident-service</module>
+        <module>maintenance-service</module>
         <module>support-service</module>
     </modules>
 </project>
