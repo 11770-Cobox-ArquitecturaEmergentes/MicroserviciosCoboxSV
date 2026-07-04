@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.upc.fleetservice.fleet.domain.model.queries.GetAllDriversQuery;
+import org.upc.fleetservice.fleet.domain.model.queries.GetDriverByEmailQuery;
 import org.upc.fleetservice.fleet.domain.model.queries.GetDriverByIdQuery;
 import org.upc.fleetservice.fleet.domain.services.DriverCommandService;
 import org.upc.fleetservice.fleet.domain.services.DriverQueryService;
@@ -95,4 +96,22 @@ public class DriverController {
                 .toList();
         return ResponseEntity.ok(driverResources);
     }
+
+        @Operation(summary = "Get a driver by email",
+                        description = "Retrieves the details of a driver using their email address.",
+                        responses = {
+                                        @ApiResponse(responseCode = "200", description = "Driver found",
+                                                        content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                                                        schema = @Schema(implementation = DriverResource.class))),
+                                        @ApiResponse(responseCode = "404", description = "Driver not found",
+                                                        content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+                        })
+        @GetMapping("/search")
+        public ResponseEntity<DriverResource> getDriverByEmail(@RequestParam String email) {
+                var driver = driverQueryService.handle(new GetDriverByEmailQuery(email));
+                if (driver.isEmpty()) {
+                        return ResponseEntity.notFound().build();
+                }
+                return ResponseEntity.ok(DriverResourceFromEntityAssembler.toResourceFromEntity(driver.get()));
+        }
 }

@@ -3,6 +3,7 @@ package org.upc.fleetservice.fleet.application.internal.queryservices;
 import org.springframework.stereotype.Service;
 import org.upc.fleetservice.fleet.domain.model.aggregates.Driver;
 import org.upc.fleetservice.fleet.domain.model.queries.GetAllDriversQuery;
+import org.upc.fleetservice.fleet.domain.model.queries.GetDriverByEmailQuery;
 import org.upc.fleetservice.fleet.domain.model.queries.GetDriverByIdQuery;
 import org.upc.fleetservice.fleet.domain.services.DriverQueryService;
 import org.upc.fleetservice.fleet.infrastructure.persistence.jpa.repositories.DriverRepository;
@@ -26,6 +27,11 @@ public class DriverQueryServiceImpl implements DriverQueryService {
     @Override
     public Optional<Driver> handle(GetDriverByIdQuery query) {
         return driverRepository.findById(query.driverId());
+    }
+
+    @Override
+    public Optional<Driver> handle(GetDriverByEmailQuery query) {
+        return driverRepository.findByEmail(query.email());
     }
 
 }
