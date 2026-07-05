@@ -54,3 +54,25 @@ edge-service
 ## Ownership Boundary
 
 `mobile-bff-service` owns upload authorization and confirmation only. It does not become the source of truth for logistics evidence. `edge-service` remains responsible for offline synchronization metadata, and future async consumers will correlate records by `clientEvidenceId`.
+
+## Desktop Aggregated Views
+
+The desktop web app consumes operational views through `desktop-bff-service` instead of composing data directly from internal microservices.
+
+```text
+Web App
+  | GET /api/v1/desktop/dashboard/operations
+  | GET /api/v1/desktop/routes/{routeId}/overview
+  | GET /api/v1/desktop/vehicles/{vehicleId}/health
+  v
+Gateway
+  v
+desktop-bff-service
+  | Feign REST calls
+  +--> fleet-service
+  +--> delivery-service
+  +--> incident-service
+  +--> maintenance-service
+```
+
+`desktop-bff-service` is read-only in this cut. It does not own domain state, does not persist data, and returns partial responses with `degradedSections` when secondary dependencies fail.

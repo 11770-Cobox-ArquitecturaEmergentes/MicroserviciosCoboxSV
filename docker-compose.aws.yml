@@ -131,7 +131,35 @@ services:
       retries: 25
     restart: unless-stopped
 
-  # 8. INCIDENT SERVICE (CORREGIDO: Eliminado container_name para permitir Scaling)
+  # 8. DESKTOP BFF SERVICE
+  desktop-bff-service:
+    image: "${ECR}/desktop-bff-service:${TAG:-latest}"
+    depends_on:
+      iam-service:
+        condition: service_healthy
+      fleet-service:
+        condition: service_healthy
+      delivery-service:
+        condition: service_healthy
+      incident-service:
+        condition: service_healthy
+      maintenance-service:
+        condition: service_healthy
+    env_file:
+      - /opt/cobox/env/desktop-bff.env
+    environment:
+      - SPRING_CLOUD_CONFIG_RETRY_ENABLED=true
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=40
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8089/actuator/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 25
+    restart: unless-stopped
+
+  # 9. INCIDENT SERVICE (CORREGIDO: Eliminado container_name para permitir Scaling)
   incident-service:
     image: "${ECR}/incident-service:${TAG:-latest}"
     depends_on:
@@ -151,7 +179,7 @@ services:
       retries: 25
     restart: unless-stopped
 
-  # 9. MAINTENANCE SERVICE (CORREGIDO: Eliminado container_name para permitir Scaling)
+  # 10. MAINTENANCE SERVICE (CORREGIDO: Eliminado container_name para permitir Scaling)
   maintenance-service:
     image: "${ECR}/maintenance-service:${TAG:-latest}"
     depends_on:
@@ -171,7 +199,7 @@ services:
       retries: 25
     restart: unless-stopped
 
-  # 10. GATEWAY SERVICE (Ya estaba corregido)
+  # 11. GATEWAY SERVICE (Ya estaba corregido)
   gateway-service:
     image: "${ECR}/gateway-service:${TAG:-latest}"
     # ELIMINADO: container_name (correcto)
@@ -188,6 +216,8 @@ services:
         condition: service_healthy
       mobile-bff-service:
         condition: service_healthy
+      desktop-bff-service:
+        condition: service_healthy
       incident-service:
         condition: service_healthy
       maintenance-service:
@@ -199,7 +229,7 @@ services:
       retries: 25
     restart: unless-stopped
 
-  # 11. NGINX REVERSE PROXY / LOAD BALANCER (Mantenemos container_name)
+  # 12. NGINX REVERSE PROXY / LOAD BALANCER (Mantenemos container_name)
   nginx:
     image: nginx:latest
     container_name: nginx
@@ -215,7 +245,7 @@ services:
       - /opt/cobox/data/certbot/www:/var/www/certbot:ro
     restart: unless-stopped
 
-  # 12. CERTBOT (CORREGIDO: No necesita container_name en despliegue)
+  # 13. CERTBOT (CORREGIDO: No necesita container_name en despliegue)
   certbot:
     image: certbot/certbot
     profiles: [ "ssl" ]
@@ -224,7 +254,7 @@ services:
       - /opt/cobox/data/certbot/www:/var/www/certbot
     command: certonly --webroot --webroot-path=/var/www/certbot --email jhonfcbm.1900@gmail.com --agree-tos --no-eff-email -d coboxsv.duckdns.org
 
-  # 13. PROMETHEUS (Mantenemos container_name)
+  # 14. PROMETHEUS (Mantenemos container_name)
   prometheus:
     image: prom/prometheus:latest
     # ELIMINADO: container_name: prometheus
@@ -237,7 +267,7 @@ services:
     networks:
       - default
 
-  # 14. GRAFANA (Mantenemos container_name)
+  # 15. GRAFANA (Mantenemos container_name)
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
