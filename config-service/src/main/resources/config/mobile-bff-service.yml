@@ -1,0 +1,38 @@
+server:
+  port: 8088
+  forward-headers-strategy: framework
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: "${AUTH0_ISSUER_URI:https://dev-e5ik5gbwpzkcqfrw.us.auth0.com/}"
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+      naming:
+        physical-strategy: org.upc.mobilebffservice.shared.infrastructure.persistence.jpa.configuration.strategy.SnakeCaseWithPluralizedTablePhysicalNamingStrategy
+    show-sql: true
+
+auth0:
+  audience: "${AUTH0_AUDIENCE:https://api.coboxsv.dev}"
+
+storage:
+  s3:
+    bucket: "${S3_EVIDENCE_BUCKET:cobox-evidence-dev}"
+    region: "${AWS_REGION:us-east-1}"
+    presigned-url-expiration-minutes: "${S3_PRESIGNED_URL_EXPIRATION_MINUTES:15}"
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: false
