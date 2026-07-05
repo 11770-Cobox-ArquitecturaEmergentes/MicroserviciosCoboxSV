@@ -61,6 +61,23 @@ public class UsersController {
                 : ResponseEntity.status(201).body(userResource);
     }
 
+    @Operation(summary = "Get current user's internal profile",
+            description = "Retrieves the internal IAM profile linked to the Auth0 subject from the access token.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Current profile retrieved successfully",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = UserResource.class))),
+                    @ApiResponse(responseCode = "404", description = "Profile not found",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            })
+    @GetMapping("/me")
+    public ResponseEntity<UserResource> getCurrentUserProfile(@AuthenticationPrincipal Jwt jwt) {
+        var user = userQueryService.handle(new GetUserByAuth0SubjectQuery(jwt.getSubject()));
+        if (user.isEmpty()) return ResponseEntity.notFound().build();
+        var userResource = UserResourceFromEntityAssembler.toResourceFromEntity(user.get());
+        return ResponseEntity.ok(userResource);
+    }
+
     @Operation(summary = "Get all users",
             description = "Retrieves a list of all registered users in the system.",
             responses = {

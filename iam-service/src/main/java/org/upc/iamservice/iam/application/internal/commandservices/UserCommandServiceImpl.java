@@ -36,7 +36,7 @@ public class UserCommandServiceImpl implements UserCommandService {
         if (userRepository.existsByEmail(command.email()))
             throw new RuntimeException("Email already exists");
 
-        var clientRole = roleRepository.findByName(Roles.ROLE_CLIENT)
+        var clientRole = roleRepository.findByName(Roles.ROLE_DRIVER)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
         var user = new User(
                 command.auth0Subject(),
