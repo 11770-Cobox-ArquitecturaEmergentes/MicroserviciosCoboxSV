@@ -173,18 +173,18 @@ public class UploadIntentCommandServiceImpl implements UploadIntentCommandServic
 
     private String payload(UploadIntent intent) {
         try {
-            return objectMapper.writeValueAsString(Map.of(
-                    "uploadIntentId", intent.getUploadIntentId().toString(),
-                    "clientEvidenceId", intent.getClientEvidenceId().toString(),
-                    "driverId", intent.getDriverId(),
-                    "orderId", intent.getOrderId(),
-                    "routeId", intent.getRouteId(),
-                    "type", intent.getType(),
-                    "objectKey", intent.getObjectKey(),
-                    "sha256", intent.getSha256(),
-                    "mimeType", intent.getMimeType(),
-                    "sizeBytes", intent.getSizeBytes(),
-                    "confirmedAt", intent.getConfirmedAt().toString()
+            return objectMapper.writeValueAsString(Map.ofEntries(
+                    Map.entry("uploadIntentId", intent.getUploadIntentId().toString()),
+                    Map.entry("clientEvidenceId", intent.getClientEvidenceId().toString()),
+                    Map.entry("driverId", intent.getDriverId()),
+                    Map.entry("orderId", intent.getOrderId()),
+                    Map.entry("routeId", intent.getRouteId()),
+                    Map.entry("type", intent.getType()),
+                    Map.entry("objectKey", intent.getObjectKey()),
+                    Map.entry("sha256", intent.getSha256()),
+                    Map.entry("mimeType", intent.getMimeType()),
+                    Map.entry("sizeBytes", intent.getSizeBytes()),
+                    Map.entry("confirmedAt", intent.getConfirmedAt().toString())
             ));
         } catch (JsonProcessingException e) {
             throw new UploadConfirmationException("Could not serialize EvidenceUploadConfirmed payload");
