@@ -9,6 +9,8 @@ services:
       POSTGRES_PASSWORD: secret
     ports:
       - "5432:5432"
+    volumes:
+      - data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U admin_postgres -d postgres_db"]
       interval: 10s
@@ -139,6 +141,8 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
@@ -185,6 +189,8 @@ services:
       iam-service:
         condition: service_healthy
       postgres-db:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     environment:
       - SERVER_PORT=8088
@@ -413,3 +419,4 @@ networks:
 
 volumes:
   data:
+  rabbitmq_data:

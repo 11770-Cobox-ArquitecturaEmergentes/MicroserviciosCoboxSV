@@ -11,7 +11,7 @@
 .NOTES
     Author: Cobox Smart Vision Team
     Version: 1.0.0
-    Prerequisites: Java 17+, Docker, Docker Compose
+    Prerequisites: Java 21+, Docker, Docker Compose
 #>
 
 param (
@@ -34,6 +34,92 @@ function Write-Log {
 }
 
 Write-Log "Starting the automated build pipeline for Cobox Microservices..." "INFO"
+
+function Assert-CommandAvailable {
+    param (
+        [Parameter(Mandatory=$true)][string]$CommandName,
+        [Parameter(Mandatory=$true)][string]$FriendlyName
+    )
+
+    if (-not (Get-Command $CommandName -ErrorAction SilentlyContinue)) {
+        Write-Log "$FriendlyName is required but was not found in PATH." "ERROR"
+        exit 1
+    }
+}
+
+function Assert-Java21 {
+    Assert-CommandAvailable -CommandName "java" -FriendlyName "Java 21"
+
+    $javaVersionOutput = & java -version 2>&1
+    $versionLine = ($javaVersionOutput | Select-String -Pattern 'version' | Select-Object -First 1).Line
+
+    if (-not $versionLine -or $versionLine -notmatch 'version "([0-9]+)') {
+        Write-Log "Unable to detect Java version from: $javaVersionOutput" "ERROR"
+        exit 1
+    }
+
+    $majorVersion = [int]$Matches[1]
+    if ($majorVersion -lt 21) {
+        Write-Log "Java 21 or newer is required. Detected: $versionLine" "ERROR"
+        exit 1
+    }
+
+    Write-Log "Java version validated: $versionLine" "SUCCESS"
+}
+
+function Assert-RequiredFiles {
+    $requiredPaths = @(
+        "mvnw.cmd",
+        "docker-compose.yml",
+        "nginx.local.conf",
+        "prometheus.yml",
+        "config-service/Dockerfile",
+        "eureka-service/Dockerfile",
+        "iam-service/Dockerfile",
+        "fleet-service/Dockerfile",
+        "delivery-service/Dockerfile",
+        "support-service/Dockerfile",
+        "incident-service/Dockerfile",
+        "maintenance-service/Dockerfile",
+        "edge-service/Dockerfile",
+        "mobile-bff-service/Dockerfile",
+        "desktop-bff-service/Dockerfile",
+        "ai-validation-service/Dockerfile",
+        "gateway-service/Dockerfile"
+    )
+
+    foreach ($path in $requiredPaths) {
+        if (-not (Test-Path -Path $path)) {
+            Write-Log "Required local runtime file is missing: $path" "ERROR"
+            exit 1
+        }
+    }
+
+    Write-Log "Required local runtime files validated." "SUCCESS"
+}
+
+function Assert-DockerCompose {
+    Assert-CommandAvailable -CommandName "docker" -FriendlyName "Docker"
+
+    & docker compose version > $null 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Log "Docker Compose v2 is required but 'docker compose version' failed." "ERROR"
+        exit 1
+    }
+
+    & docker compose -f docker-compose.yml config --quiet
+    if ($LASTEXITCODE -ne 0) {
+        Write-Log "docker-compose.yml validation failed." "ERROR"
+        exit $LASTEXITCODE
+    }
+
+    Write-Log "Docker Compose validated successfully." "SUCCESS"
+}
+
+Write-Log "Validating local prerequisites..." "INFO"
+Assert-Java21
+Assert-RequiredFiles
+Assert-DockerCompose
 
 # 3. Maven Multi-Module Build Phase
 Write-Log "Executing Maven multi-module compilation (Reactor)..." "INFO"
