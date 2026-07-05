@@ -105,6 +105,21 @@ spring:
           filters:
             - PreserveHostHeader
 
+        - id: mobile-bff-service-docs
+          uri: lb://mobile-bff-service
+          predicates:
+            - Path=/mobile-bff-service/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+            - PreserveHostHeader
+
+        - id: mobile-bff-service-route
+          uri: lb://mobile-bff-service
+          predicates:
+            - Path=/api/v1/mobile/**
+          filters:
+            - PreserveHostHeader
+
         - id: incident-service-docs
           uri: lb://incident-service
           predicates:
@@ -159,6 +174,8 @@ springdoc:
         url: /delivery-service/v3/api-docs
       - name: edge-service
         url: /edge-service/v3/api-docs
+      - name: mobile-bff-service
+        url: /mobile-bff-service/v3/api-docs
       - name: fleet-service
         url: /fleet-service/v3/api-docs
       - name: incident-service
@@ -202,6 +219,11 @@ gateway:
 
       # Edge Sync Endpoints
       "[/api/v1/edge/**]":
+        max-requests: 30
+        window-seconds: 10
+
+      # Mobile BFF Endpoints
+      "[/api/v1/mobile/**]":
         max-requests: 30
         window-seconds: 10
 
