@@ -15,7 +15,7 @@ El primer endpoint crea o reutiliza un `UploadIntent` idempotente usando `client
 
 El segundo endpoint confirma la subida. No confia solo en el request del movil: valida el objeto con S3 `HeadObject`, comparando existencia, `Content-Length`, `Content-Type`, `x-amz-meta-client-evidence-id` y `x-amz-meta-sha256`.
 
-Cuando la confirmacion es valida, marca el intent como `CONFIRMED` y registra un outbox local `EvidenceUploadConfirmed` para la futura integracion asincrona con servicios de IA.
+Cuando la confirmacion es valida, marca el intent como `CONFIRMED` y registra un outbox local `EvidenceUploadConfirmed`. En Parte III, un relay programado publica ese evento hacia RabbitMQ local/demo para que `ai-validation-service` lo consuma asincronicamente.
 
 El servicio no es duenio final de Evidence. Solo administra autorizacion y confirmacion de subida; `edge-service` sigue recibiendo la metadata offline y los eventos logisticos correlados por `clientEvidenceId`.
 
@@ -69,7 +69,7 @@ POST http://localhost:8080/api/v1/mobile/evidence/upload-intents/{uploadIntentId
 ## Deuda tecnica
 
 - No pude verificar tests/build porque esta shell no tiene Java disponible (`java: command not found`) y `JAVA_HOME` no esta configurado.
-- No hay relay de outbox ni broker real todavia. `EvidenceUploadConfirmed` queda persistido como `PENDING`, pero ningun worker lo publica hacia IA.
+- El relay de outbox publica hacia RabbitMQ local/demo, pero no hay estrategia productiva de broker administrado o alternativa cloud seleccionada.
 - No hay validacion granular de permisos entre conductor, ruta y orden. El servicio usa JWT general y toma `driverId` desde claims si existen; si no, acepta `driverId` en el request como transicion v1.
 - No hay integracion con `edge-service` para consultar o cerrar el estado final de la evidencia. La correlacion queda por `clientEvidenceId`.
 - No hay endpoint administrativo para inspeccionar intents, confirmaciones u outbox.
@@ -104,8 +104,8 @@ Sí, puedes proceder con la **Parte II-B**, pero dejaría estas acotaciones ante
 4. **La deuda del hash es aceptable.**
    No calcular SHA-256 desde backend es coherente con “no descargar binarios”. Para una versión más fuerte, el móvil debe calcular hash antes de subir y S3 debe recibirlo como metadata o checksum firmado.
 
-5. **El outbox local está bien como preparación para Parte III.**
-   No necesitas broker todavía. Para esta fase basta con que `EvidenceUploadConfirmed` quede persistido como `PENDING`.
+5. **El outbox local ya conecta con Parte III.**
+   `EvidenceUploadConfirmed` se publica hacia RabbitMQ local/demo y `ai-validation-service` lo consume asincronicamente.
 
 6. **Cuidado con el ownership de Evidence.**
    La frase “el `mobile-bff-service` administra autorización y confirmación” está bien. Solo evita que más adelante empiece a concentrar reglas de dominio de evidencia. Cuando se implemente `evidence-service` completo, ese servicio debería ser el dueño final del estado de evidencia.

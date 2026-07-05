@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface EdgeTelemetrySampleRepository extends JpaRepository<EdgeTelemetrySample, Long> {
     Optional<EdgeTelemetrySample> findByClientTelemetryId(UUID clientTelemetryId);
     List<EdgeTelemetrySample> findBySyncBatchId(Long syncBatchId);
+    List<EdgeTelemetrySample> findByRouteIdOrderByCapturedAtAsc(Long routeId);
 }

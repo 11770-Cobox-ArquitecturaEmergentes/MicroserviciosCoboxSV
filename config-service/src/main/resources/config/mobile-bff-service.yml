@@ -20,6 +20,11 @@ spring:
       naming:
         physical-strategy: org.upc.mobilebffservice.shared.infrastructure.persistence.jpa.configuration.strategy.SnakeCaseWithPluralizedTablePhysicalNamingStrategy
     show-sql: true
+  rabbitmq:
+    host: "${RABBITMQ_HOST:rabbitmq}"
+    port: "${RABBITMQ_PORT:5672}"
+    username: "${RABBITMQ_USERNAME:guest}"
+    password: "${RABBITMQ_PASSWORD:guest}"
 
 auth0:
   audience: "${AUTH0_AUDIENCE:https://api.coboxsv.dev}"
@@ -29,6 +34,15 @@ storage:
     bucket: "${S3_EVIDENCE_BUCKET:cobox-evidence-dev}"
     region: "${AWS_REGION:us-east-1}"
     presigned-url-expiration-minutes: "${S3_PRESIGNED_URL_EXPIRATION_MINUTES:15}"
+
+cobox:
+  rabbitmq:
+    exchange: "cobox.events"
+    evidence-upload-confirmed-routing-key: "evidence.upload.confirmed"
+    evidence-upload-confirmed-queue: "ai.evidence-upload-confirmed"
+    evidence-upload-confirmed-dlq: "ai.evidence-upload-confirmed.dlq"
+    relay-max-retries: "${OUTBOX_RELAY_MAX_RETRIES:5}"
+    relay-interval-ms: "${OUTBOX_RELAY_INTERVAL_MS:5000}"
 
 springdoc:
   api-docs:

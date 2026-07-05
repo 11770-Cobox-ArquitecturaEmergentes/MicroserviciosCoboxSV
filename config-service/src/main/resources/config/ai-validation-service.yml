@@ -1,0 +1,58 @@
+server:
+  port: 8090
+  forward-headers-strategy: framework
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: "${AUTH0_ISSUER_URI:https://dev-e5ik5gbwpzkcqfrw.us.auth0.com/}"
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+      naming:
+        physical-strategy: org.upc.aivalidationservice.shared.infrastructure.persistence.jpa.configuration.strategy.SnakeCaseWithPluralizedTablePhysicalNamingStrategy
+    show-sql: true
+
+  rabbitmq:
+    host: "${RABBITMQ_HOST:rabbitmq}"
+    port: "${RABBITMQ_PORT:5672}"
+    username: "${RABBITMQ_USERNAME:guest}"
+    password: "${RABBITMQ_PASSWORD:guest}"
+    listener:
+      simple:
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1000
+
+auth0:
+  audience: "${AUTH0_AUDIENCE:https://api.coboxsv.dev}"
+
+storage:
+  s3:
+    bucket: "${S3_EVIDENCE_BUCKET:cobox-evidence-dev}"
+    region: "${AWS_REGION:us-east-1}"
+
+cobox:
+  rabbitmq:
+    exchange: "cobox.events"
+    evidence-upload-confirmed-routing-key: "evidence.upload.confirmed"
+    evidence-upload-confirmed-queue: "ai.evidence-upload-confirmed"
+    evidence-upload-confirmed-dlq: "ai.evidence-upload-confirmed.dlq"
+  ai:
+    provider: aws
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: false
