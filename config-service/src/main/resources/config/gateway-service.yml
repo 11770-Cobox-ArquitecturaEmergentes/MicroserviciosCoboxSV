@@ -90,6 +90,21 @@ spring:
           filters:
             - PreserveHostHeader
 
+        - id: edge-service-docs
+          uri: lb://edge-service
+          predicates:
+            - Path=/edge-service/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+            - PreserveHostHeader
+
+        - id: edge-service-route
+          uri: lb://edge-service
+          predicates:
+            - Path=/api/v1/edge/**
+          filters:
+            - PreserveHostHeader
+
         - id: incident-service-docs
           uri: lb://incident-service
           predicates:
@@ -142,6 +157,8 @@ springdoc:
         url: /iam-service/v3/api-docs
       - name: delivery-service
         url: /delivery-service/v3/api-docs
+      - name: edge-service
+        url: /edge-service/v3/api-docs
       - name: fleet-service
         url: /fleet-service/v3/api-docs
       - name: incident-service
@@ -181,6 +198,11 @@ gateway:
       # Order Endpoints
       "[/api/v1/orders/**]":
         max-requests: 50
+        window-seconds: 10
+
+      # Edge Sync Endpoints
+      "[/api/v1/edge/**]":
+        max-requests: 30
         window-seconds: 10
 
       # Incident Endpoints

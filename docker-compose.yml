@@ -133,7 +133,33 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # 8. INCIDENT SERVICE
+  # 8. EDGE SERVICE
+  edge-service:
+    build: ./edge-service
+    container_name: edge-service
+    depends_on:
+      iam-service:
+        condition: service_healthy
+      postgres-db:
+        condition: service_healthy
+    environment:
+      - SERVER_PORT=8087
+      - POSTGRES_HOST=postgres-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=postgres_db
+      - POSTGRES_USER=admin_postgres
+      - POSTGRES_PASSWORD=secret
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/postgres_db
+      - SPRING_DATASOURCE_USERNAME=admin_postgres
+      - SPRING_DATASOURCE_PASSWORD=secret
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8087/actuator/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # 9. INCIDENT SERVICE
   incident-service:
     build: ./incident-service
     container_name: incident-service
@@ -159,7 +185,7 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # 9. MAINTENANCE SERVICE
+  # 10. MAINTENANCE SERVICE
   maintenance-service:
     build: ./maintenance-service
     container_name: maintenance-service
@@ -185,7 +211,7 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # 10. GATEWAY SERVICE (Escalable)
+  # 11. GATEWAY SERVICE (Escalable)
   gateway-service:
     build: ./gateway-service
     depends_on:
@@ -196,6 +222,8 @@ services:
       fleet-service:
         condition: service_healthy
       delivery-service:
+        condition: service_healthy
+      edge-service:
         condition: service_healthy
       support-service:
         condition: service_healthy
@@ -210,7 +238,7 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # 11. NGINX REVERSE PROXY / LOAD BALANCER
+  # 12. NGINX REVERSE PROXY / LOAD BALANCER
   nginx:
     image: nginx:latest
     container_name: nginx
@@ -223,7 +251,7 @@ services:
       - ./nginx.local.conf:/etc/nginx/nginx.conf:ro
     restart: unless-stopped
 
-  # 12. CERTBOT
+  # 13. CERTBOT
   certbot:
     image: certbot/certbot
     profiles: [ "ssl" ]
@@ -232,7 +260,7 @@ services:
       - ./data/certbot/www:/var/www/certbot
     command: certonly --webroot --webroot-path=/var/www/certbot --email davidalexd1234@gmail.com --agree-tos --no-eff-email --staging -d cobox.duckdns.org
 
-  # 13. PROMETHEUS
+  # 14. PROMETHEUS
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -245,7 +273,7 @@ services:
     networks:
       - default
 
-  # 14. GRAFANA
+  # 15. GRAFANA
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
