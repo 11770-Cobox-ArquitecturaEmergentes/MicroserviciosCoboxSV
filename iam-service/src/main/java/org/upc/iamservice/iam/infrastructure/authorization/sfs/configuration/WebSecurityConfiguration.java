@@ -1,82 +1,37 @@
 package org.upc.iamservice.iam.infrastructure.authorization.sfs.configuration;
 
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.upc.iamservice.iam.infrastructure.authorization.sfs.pipeline.BearerAuthorizationRequestFilter;
-import org.upc.iamservice.iam.infrastructure.hashing.bcrypt.BCryptHashingService;
-import org.upc.iamservice.iam.infrastructure.tokens.jwt.BearerTokenService;
 
 @Configuration
 @EnableMethodSecurity
 public class WebSecurityConfiguration {
-    private final UserDetailsService userDetailsService;
-    private final BearerTokenService tokenService;
-    private final BCryptHashingService hashingService;
-    private final AuthenticationEntryPoint unauthorizedRequestHandler;
-
-    public WebSecurityConfiguration(
-            @Qualifier("defaultUserDetailsService") UserDetailsService userDetailsService,
-            BearerTokenService tokenService,
-            BCryptHashingService hashingService,
-            AuthenticationEntryPoint unauthorizedRequestHandler
-    ) {
-        this.userDetailsService = userDetailsService;
-        this.tokenService = tokenService;
-        this.hashingService = hashingService;
-        this.unauthorizedRequestHandler = unauthorizedRequestHandler;
-    }
-
-    @Bean
-    public BearerAuthorizationRequestFilter authorizationRequestFilter() {
-        return new BearerAuthorizationRequestFilter(tokenService, userDetailsService);
-    }
-
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
-    }
-
-    @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
-        var authenticationProvider = new DaoAuthenticationProvider();
-        authenticationProvider.setUserDetailsService(userDetailsService);
-        authenticationProvider.setPasswordEncoder(hashingService);
-        return authenticationProvider;
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return hashingService;
-    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // CORS default configuration
-        http.cors(AbstractHttpConfigurer::disable);
-
-        // CSRF disabled
-        http.csrf(AbstractHttpConfigurer::disable);
-
-        // Identity and Access Management Configuration
-        http.exceptionHandling(exceptionHandling -> exceptionHandling.authenticationEntryPoint(unauthorizedRequestHandler))
-                .sessionManagement(customizer -> customizer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        http
+                .cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorizeRequests -> authorizeRequests
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
-                                "/api/v1/authentication/**",
-                                "/api/v1/jwks/**",
                                 "/error",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
@@ -85,9 +40,36 @@ public class WebSecurityConfiguration {
                                 "/webjars/**",
                                 "/actuator/**"
                         ).permitAll()
-                        .anyRequest().authenticated());
-        http.authenticationProvider(authenticationProvider());
-        http.addFilterBefore(authorizationRequestFilter(), UsernamePasswordAuthenticationFilter.class);
+                        .anyRequest().authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
         return http.build();
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder(
+            @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}") String issuerUri,
+            @Value("${auth0.audience}") String audience
+    ) {
+        var decoder = NimbusJwtDecoder.withJwkSetUri(resolveJwkSetUri(issuerUri)).build();
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefaultWithIssuer(issuerUri),
+                audienceValidator(audience)
+        ));
+        return decoder;
+    }
+
+    private OAuth2TokenValidator<Jwt> audienceValidator(String audience) {
+        return jwt -> jwt.getAudience().contains(audience)
+                ? OAuth2TokenValidatorResult.success()
+                : OAuth2TokenValidatorResult.failure(new OAuth2Error(
+                "invalid_token",
+                "The required audience is missing",
+                null
+        ));
+    }
+
+    private String resolveJwkSetUri(String issuerUri) {
+        var normalizedIssuer = issuerUri.endsWith("/") ? issuerUri : issuerUri + "/";
+        return normalizedIssuer + ".well-known/jwks.json";
     }
 }
