@@ -62,17 +62,17 @@ try {
 Start-Sleep -Seconds 2
 
 # ================================================
-# Test 3: Specific Limit Test (Authentication)
+# Test 3: Specific Limit Test (IAM Profile)
 # CONFIG: window=60s, max=20
 # GOAL: Send 25 requests, expect ~5 blocks
 # ================================================
-Write-Host "`n3. Testing Specific Rule: 'api/v1/authentication'..." -ForegroundColor Yellow
+Write-Host "`n3. Testing Specific Rule: 'api/v1/users'..." -ForegroundColor Yellow
 Write-Host "   Config: 20 req / 60s" -ForegroundColor Gray
 Write-Host "   Sending 25 requests rapidly..." -ForegroundColor Gray
 
-$targetUri = "$BaseUrl/api/v1/authentication/sign-in" # Updated to match new config
-# NOTE: If /api/v1/authentication/sign-in does not exist, it might return 404
-# The Rate Limiter usually works before 404, but if not, change URL to a valid one.
+$targetUri = "$BaseUrl/api/v1/users/me"
+# NOTE: This route now requires an Auth0 bearer token and may return 401.
+# The Rate Limiter usually works before 401, but if not, use a valid token.
 
 $allowed = 0
 $blocked = 0
@@ -160,10 +160,10 @@ if ($blocked -gt 0) {
 # ================================================
 Write-Host "`n5. Verifying 429 Response & Window Reset..." -ForegroundColor Yellow
 
-# Force a block on the tightest rule (Auth: 20 reqs)
+# Force a block on the tightest rule (IAM profile: 20 reqs)
 # We already saturated it in Test 3.
 try {
-    $null = Invoke-WebRequest -Uri "$BaseUrl/api/v1/authentication/sign-in" -Method GET -ErrorAction Stop
+    $null = Invoke-WebRequest -Uri "$BaseUrl/api/v1/users/me" -Method GET -ErrorAction Stop
     Write-Host "   Warning: Request was NOT blocked." -ForegroundColor Yellow
 } catch {
     if ($_.Exception.Response -and $_.Exception.Response.StatusCode -eq 429) {
