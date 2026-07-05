@@ -3,6 +3,7 @@ package org.upc.iamservice.iam.application.internal.queryservices;
 import org.springframework.stereotype.Service;
 import org.upc.iamservice.iam.domain.model.aggregates.User;
 import org.upc.iamservice.iam.domain.model.queries.GetAllUsersQuery;
+import org.upc.iamservice.iam.domain.model.queries.GetUserByAuth0SubjectQuery;
 import org.upc.iamservice.iam.domain.model.queries.GetUserByEmailQuery;
 import org.upc.iamservice.iam.domain.model.queries.GetUserByIdQuery;
 import org.upc.iamservice.iam.domain.services.UserQueryService;
@@ -27,6 +28,11 @@ public class UserQueryServiceImpl implements UserQueryService {
     @Override
     public Optional<User> handle(GetUserByIdQuery query) {
         return userRepository.findById(query.userId());
+    }
+
+    @Override
+    public Optional<User> handle(GetUserByAuth0SubjectQuery query) {
+        return userRepository.findByAuth0Subject(query.auth0Subject());
     }
 
     @Override
