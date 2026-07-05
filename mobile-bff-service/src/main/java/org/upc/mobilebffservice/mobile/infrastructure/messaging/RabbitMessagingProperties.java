@@ -1,0 +1,26 @@
+package org.upc.mobilebffservice.mobile.infrastructure.messaging;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties(prefix = "cobox.rabbitmq")
+public record RabbitMessagingProperties(
+        String exchange,
+        String evidenceUploadConfirmedRoutingKey,
+        String evidenceUploadConfirmedQueue,
+        String evidenceUploadConfirmedDlq,
+        Integer relayMaxRetries
+) {
+    public RabbitMessagingProperties {
+        exchange = exchange == null ? "cobox.events" : exchange;
+        evidenceUploadConfirmedRoutingKey = evidenceUploadConfirmedRoutingKey == null
+                ? "evidence.upload.confirmed"
+                : evidenceUploadConfirmedRoutingKey;
+        evidenceUploadConfirmedQueue = evidenceUploadConfirmedQueue == null
+                ? "ai.evidence-upload-confirmed"
+                : evidenceUploadConfirmedQueue;
+        evidenceUploadConfirmedDlq = evidenceUploadConfirmedDlq == null
+                ? "ai.evidence-upload-confirmed.dlq"
+                : evidenceUploadConfirmedDlq;
+        relayMaxRetries = relayMaxRetries == null ? 5 : relayMaxRetries;
+    }
+}
