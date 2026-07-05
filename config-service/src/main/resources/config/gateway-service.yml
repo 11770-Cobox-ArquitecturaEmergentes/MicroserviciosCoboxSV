@@ -135,6 +135,21 @@ spring:
           filters:
             - PreserveHostHeader
 
+        - id: ai-validation-service-docs
+          uri: lb://ai-validation-service
+          predicates:
+            - Path=/ai-validation-service/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+            - PreserveHostHeader
+
+        - id: ai-validation-service-route
+          uri: lb://ai-validation-service
+          predicates:
+            - Path=/api/v1/ai-validation/**
+          filters:
+            - PreserveHostHeader
+
         - id: incident-service-docs
           uri: lb://incident-service
           predicates:
@@ -193,6 +208,8 @@ springdoc:
         url: /mobile-bff-service/v3/api-docs
       - name: desktop-bff-service
         url: /desktop-bff-service/v3/api-docs
+      - name: ai-validation-service
+        url: /ai-validation-service/v3/api-docs
       - name: fleet-service
         url: /fleet-service/v3/api-docs
       - name: incident-service
@@ -246,6 +263,11 @@ gateway:
 
       # Desktop BFF Endpoints
       "[/api/v1/desktop/**]":
+        max-requests: 50
+        window-seconds: 10
+
+      # AI Validation Endpoints
+      "[/api/v1/ai-validation/**]":
         max-requests: 50
         window-seconds: 10
 

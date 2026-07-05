@@ -1,5 +1,5 @@
 server:
-  port: 8088
+  port: 8090
   forward-headers-strategy: framework
 
 spring:
@@ -18,13 +18,20 @@ spring:
     hibernate:
       ddl-auto: update
       naming:
-        physical-strategy: org.upc.mobilebffservice.shared.infrastructure.persistence.jpa.configuration.strategy.SnakeCaseWithPluralizedTablePhysicalNamingStrategy
+        physical-strategy: org.upc.aivalidationservice.shared.infrastructure.persistence.jpa.configuration.strategy.SnakeCaseWithPluralizedTablePhysicalNamingStrategy
     show-sql: true
+
   rabbitmq:
     host: "${RABBITMQ_HOST:rabbitmq}"
     port: "${RABBITMQ_PORT:5672}"
     username: "${RABBITMQ_USERNAME:guest}"
     password: "${RABBITMQ_PASSWORD:guest}"
+    listener:
+      simple:
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1000
 
 auth0:
   audience: "${AUTH0_AUDIENCE:https://api.coboxsv.dev}"
@@ -33,7 +40,6 @@ storage:
   s3:
     bucket: "${S3_EVIDENCE_BUCKET:cobox-evidence-dev}"
     region: "${AWS_REGION:us-east-1}"
-    presigned-url-expiration-minutes: "${S3_PRESIGNED_URL_EXPIRATION_MINUTES:15}"
 
 cobox:
   rabbitmq:
@@ -41,8 +47,8 @@ cobox:
     evidence-upload-confirmed-routing-key: "evidence.upload.confirmed"
     evidence-upload-confirmed-queue: "ai.evidence-upload-confirmed"
     evidence-upload-confirmed-dlq: "ai.evidence-upload-confirmed.dlq"
-    relay-max-retries: "${OUTBOX_RELAY_MAX_RETRIES:5}"
-    relay-interval-ms: "${OUTBOX_RELAY_INTERVAL_MS:5000}"
+  ai:
+    provider: aws
 
 springdoc:
   api-docs:
