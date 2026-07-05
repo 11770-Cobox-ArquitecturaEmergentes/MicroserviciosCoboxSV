@@ -6,8 +6,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: "http://iam-service:8081/api/v1/jwks/.well-known/jwks.json"
-
+          issuer-uri: "${AUTH0_ISSUER_URI:https://dev-e5ik5gbwpzkcqfrw.us.auth0.com/}"
   cloud:
     gateway:
       globalcors:
@@ -57,7 +56,7 @@ spring:
         - id: iam-service-route
           uri: lb://iam-service
           predicates:
-            - Path=/api/v1/authentication/**,/api/v1/roles/**,/api/v1/users/**,/api/v1/jwks/**
+            - Path=/api/v1/roles/**,/api/v1/users/**
           filters:
             - PreserveHostHeader
 
@@ -130,6 +129,9 @@ spring:
           filters:
             - PreserveHostHeader
 
+auth0:
+  audience: "${AUTH0_AUDIENCE:https://api.coboxsv.dev}"
+
 springdoc:
   swagger-ui:
     enabled: true
@@ -162,8 +164,8 @@ gateway:
       window-seconds: 10
 
     endpoints:
-      # Authentication Endpoints
-      "[/api/v1/authentication/**]":
+      # IAM Endpoints
+      "[/api/v1/users/**]":
         max-requests: 20
         window-seconds: 60
 

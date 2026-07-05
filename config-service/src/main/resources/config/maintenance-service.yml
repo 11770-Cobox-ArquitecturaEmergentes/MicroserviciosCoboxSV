@@ -7,7 +7,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: "http://iam-service:8081/api/v1/jwks/.well-known/jwks.json"
+          issuer-uri: "${AUTH0_ISSUER_URI:https://dev-e5ik5gbwpzkcqfrw.us.auth0.com/}"
 
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}
@@ -20,6 +20,9 @@ spring:
       naming:
         physical-strategy: org.upc.maintenanceservice.shared.infrastructure.persistence.jpa.configuration.strategy.SnakeCaseWithPluralizedTablePhysicalNamingStrategy
     show-sql: true
+
+auth0:
+  audience: "${AUTH0_AUDIENCE:https://api.coboxsv.dev}"
 
 springdoc:
   api-docs:
