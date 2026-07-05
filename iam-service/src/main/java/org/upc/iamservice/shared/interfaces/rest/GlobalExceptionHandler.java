@@ -38,9 +38,8 @@ public class GlobalExceptionHandler {
             return buildResponse(HttpStatus.BAD_REQUEST, message, "Role assignment");
         }
 
-        if (message.equalsIgnoreCase("User not found") ||
-                message.equalsIgnoreCase("Invalid password")) {
-            return buildResponse(HttpStatus.UNAUTHORIZED, message, "User authentication");
+        if (message.equalsIgnoreCase("User not found")) {
+            return buildResponse(HttpStatus.NOT_FOUND, message, "User profile");
         }
 
         return buildResponse(
