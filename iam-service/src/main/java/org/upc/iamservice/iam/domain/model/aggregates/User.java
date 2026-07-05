@@ -16,14 +16,15 @@ public class User extends AuditableAbstractAggregateRoot<User> {
 
     @Getter
     @NotBlank
-    @Column(unique = true)
-    @Size(max = 254)
-    private String email;
+    @Column(unique = true, nullable = false, length = 128)
+    @Size(max = 128)
+    private String auth0Subject;
 
     @Getter
     @NotBlank
-    @Size(max = 256)
-    private String password;
+    @Column(unique = true, nullable = false)
+    @Size(max = 254)
+    private String email;
 
     @Getter
     @NotBlank
@@ -58,18 +59,18 @@ public class User extends AuditableAbstractAggregateRoot<User> {
         this.emailVerified = false;
     }
 
-    public User(String email, String password, String firstName, String lastName, String phone) {
+    public User(String auth0Subject, String email, String firstName, String lastName, String phone) {
         this();
+        this.auth0Subject = auth0Subject;
         this.email = email;
-        this.password = password;
         this.firstName = firstName;
         this.lastName = lastName;
         this.phone = phone;
         this.roles = new HashSet<>();
     }
 
-    public User(String email, String password, String firstName, String lastName, String phone, List<Role> roles) {
-        this(email, password, firstName, lastName, phone);
+    public User(String auth0Subject, String email, String firstName, String lastName, String phone, List<Role> roles) {
+        this(auth0Subject, email, firstName, lastName, phone);
         addRoles(roles);
     }
 
@@ -96,7 +97,8 @@ public class User extends AuditableAbstractAggregateRoot<User> {
         this.isActive = true;
     }
 
-    public void updateUserInfo(String firstName, String lastName, String phone) {
+    public void updateUserInfo(String email, String firstName, String lastName, String phone) {
+        this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
         this.phone = phone;

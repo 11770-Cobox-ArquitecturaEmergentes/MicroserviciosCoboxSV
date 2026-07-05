@@ -31,7 +31,7 @@ public class Role extends AuditableModel {
     }
 
     public static Role getDefaultRole() {
-        return new Role(Roles.ROLE_DRIVER);
+        return new Role(Roles.ROLE_CLIENT);
     }
 
 
