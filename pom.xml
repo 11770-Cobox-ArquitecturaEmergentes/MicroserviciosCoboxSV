@@ -33,6 +33,7 @@
         <module>fleet-service</module>
         <module>delivery-service</module>
         <module>edge-service</module>
+        <module>mobile-bff-service</module>
         <module>incident-service</module>
         <module>maintenance-service</module>
         <module>support-service</module>

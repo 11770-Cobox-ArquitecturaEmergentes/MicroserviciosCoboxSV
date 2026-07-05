@@ -159,7 +159,38 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # 9. INCIDENT SERVICE
+  # 9. MOBILE BFF SERVICE
+  mobile-bff-service:
+    build: ./mobile-bff-service
+    container_name: mobile-bff-service
+    depends_on:
+      iam-service:
+        condition: service_healthy
+      postgres-db:
+        condition: service_healthy
+    environment:
+      - SERVER_PORT=8088
+      - POSTGRES_HOST=postgres-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=postgres_db
+      - POSTGRES_USER=admin_postgres
+      - POSTGRES_PASSWORD=secret
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/postgres_db
+      - SPRING_DATASOURCE_USERNAME=admin_postgres
+      - SPRING_DATASOURCE_PASSWORD=secret
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - S3_EVIDENCE_BUCKET=${S3_EVIDENCE_BUCKET:-cobox-evidence-dev}
+      - S3_PRESIGNED_URL_EXPIRATION_MINUTES=${S3_PRESIGNED_URL_EXPIRATION_MINUTES:-15}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8088/actuator/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # 10. INCIDENT SERVICE
   incident-service:
     build: ./incident-service
     container_name: incident-service
@@ -185,7 +216,7 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # 10. MAINTENANCE SERVICE
+  # 11. MAINTENANCE SERVICE
   maintenance-service:
     build: ./maintenance-service
     container_name: maintenance-service
@@ -211,7 +242,7 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # 11. GATEWAY SERVICE (Escalable)
+  # 12. GATEWAY SERVICE (Escalable)
   gateway-service:
     build: ./gateway-service
     depends_on:
@@ -224,6 +255,8 @@ services:
       delivery-service:
         condition: service_healthy
       edge-service:
+        condition: service_healthy
+      mobile-bff-service:
         condition: service_healthy
       support-service:
         condition: service_healthy
@@ -238,7 +271,7 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # 12. NGINX REVERSE PROXY / LOAD BALANCER
+  # 13. NGINX REVERSE PROXY / LOAD BALANCER
   nginx:
     image: nginx:latest
     container_name: nginx
@@ -251,7 +284,7 @@ services:
       - ./nginx.local.conf:/etc/nginx/nginx.conf:ro
     restart: unless-stopped
 
-  # 13. CERTBOT
+  # 14. CERTBOT
   certbot:
     image: certbot/certbot
     profiles: [ "ssl" ]
@@ -260,7 +293,7 @@ services:
       - ./data/certbot/www:/var/www/certbot
     command: certonly --webroot --webroot-path=/var/www/certbot --email davidalexd1234@gmail.com --agree-tos --no-eff-email --staging -d cobox.duckdns.org
 
-  # 14. PROMETHEUS
+  # 15. PROMETHEUS
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -273,7 +306,7 @@ services:
     networks:
       - default
 
-  # 15. GRAFANA
+  # 16. GRAFANA
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
