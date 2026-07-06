@@ -50,4 +50,9 @@ public class MaintenanceOrderQueryServiceImpl implements MaintenanceOrderQuerySe
     public boolean handle(HasMaintenanceOpenOrderForVehicleIdQuery query) {
         return maintenanceOrderRepository.existsByVehicleIdAndStatusIn(new VehicleId(query.vehicleId()), OPEN_STATUSES);
     }
+
+    @Override
+    public List<MaintenanceOrder> handle(GetAllMaintenanceOrdersQuery query) {
+        return maintenanceOrderRepository.findAll();
+    }
 }

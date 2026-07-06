@@ -234,4 +234,16 @@ public class MaintenanceOrderController {
         var orders = maintenanceOrderQueryService.handle(new GetMaintenanceOrderHistoryQuery(vehicleId));
         return ResponseEntity.ok(orders.stream().map(MaintenanceOrderResourceFromEntityAssembler::toResourceFromEntity).toList());
     }
+
+    @Operation(summary = "Get all maintenance orders",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Orders retrieved",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    array = @ArraySchema(schema = @Schema(implementation = MaintenanceOrderResource.class))))
+            })
+    @GetMapping
+    public ResponseEntity<List<MaintenanceOrderResource>> getAllOrders() {
+        var orders = maintenanceOrderQueryService.handle(new GetAllMaintenanceOrdersQuery());
+        return ResponseEntity.ok(orders.stream().map(MaintenanceOrderResourceFromEntityAssembler::toResourceFromEntity).toList());
+    }
 }

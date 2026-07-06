@@ -16,4 +16,6 @@ public interface MaintenanceOrderQueryService {
     List<MaintenanceOrder> handle(GetMaintenanceOrdersByStatusQuery query);
 
     boolean handle(HasMaintenanceOpenOrderForVehicleIdQuery query);
+
+    List<MaintenanceOrder> handle(GetAllMaintenanceOrdersQuery query);
 }
