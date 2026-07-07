@@ -49,21 +49,18 @@ public class Vehicle extends AuditableAbstractAggregateRoot<Vehicle>{
     }
 
     /**
-     * Marks the vehicle as unavailable for routes due to maintenance.
+     * Updates the vehicle status to the provided value.
+     * Allowed target statuses: OPERATIONAL, IN_MAINTENANCE, OUT_OF_SERVICE.
+     * A vehicle currently ON_ROUTE cannot be updated through this method.
      */
-    public void sendToMaintenance() {
-        this.vehicleStatus = VehicleStatus.IN_MAINTENANCE;
-    }
-
-    /**
-     * Puts the vehicle back into service after maintenance.
-     */
-    public void markAsOperational() {
-        if (this.vehicleStatus == VehicleStatus.IN_MAINTENANCE || this.vehicleStatus == VehicleStatus.OUT_OF_SERVICE) {
-            this.vehicleStatus = VehicleStatus.OPERATIONAL;
-        } else {
+    public void updateStatus(VehicleStatus newStatus) {
+        if (newStatus == VehicleStatus.ON_ROUTE) {
+            throw new InvalidVehicleStateTransitionException(newStatus);
+        }
+        if (this.vehicleStatus == VehicleStatus.ON_ROUTE) {
             throw new InvalidVehicleStateTransitionException(this.vehicleStatus);
         }
+        this.vehicleStatus = newStatus;
     }
 
 }

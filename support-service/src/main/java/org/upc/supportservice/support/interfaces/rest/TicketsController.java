@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.upc.supportservice.support.domain.model.commands.DeleteTicketCommand;
 import org.upc.supportservice.support.domain.model.queries.*;
 import org.upc.supportservice.support.domain.model.valueobjects.TicketCategory;
@@ -50,8 +52,10 @@ public class TicketsController {
                             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
             })
     @PostMapping
-    public ResponseEntity<TicketResource> createTicket(@Valid @RequestBody CreateTicketResource resource) {
-        var createTicketCommand = CreateTicketCommandFromResourceAssembler.toCommandFromResource(resource);
+    public ResponseEntity<TicketResource> createTicket(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody CreateTicketResource resource) {
+        var createTicketCommand = CreateTicketCommandFromResourceAssembler.toCommandFromResource(resource, jwt.getSubject());
         var ticket = ticketCommandService.handle(createTicketCommand);
         if (ticket.isEmpty()) return ResponseEntity.badRequest().build();
         var ticketResource = TicketResourceFromEntityAssembler.toResourceFromEntity(ticket.get());
@@ -134,7 +138,7 @@ public class TicketsController {
                                     array = @ArraySchema(schema = @Schema(implementation = TicketResource.class))))
             })
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<TicketResource>> getTicketsByUser(@PathVariable Long userId) {
+    public ResponseEntity<List<TicketResource>> getTicketsByUser(@PathVariable String userId) {
         var tickets = ticketQueryService.handle(new GetTicketsByUserIdQuery(userId));
         var resources = tickets.stream()
                 .map(TicketResourceFromEntityAssembler::toResourceFromEntity)

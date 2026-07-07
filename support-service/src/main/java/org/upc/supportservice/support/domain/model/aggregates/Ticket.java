@@ -44,7 +44,7 @@ public class Ticket extends AuditableAbstractAggregateRoot<Ticket> {
     @Getter
     @NotNull
     @Column(nullable = false)
-    private Long userId;
+    private String userId;
 
     @Getter
     private Long assignedTo;
@@ -53,7 +53,7 @@ public class Ticket extends AuditableAbstractAggregateRoot<Ticket> {
         this.status = TicketStatus.OPEN;
     }
 
-    public Ticket(String title, String description, TicketCategory category, TicketPriority priority, Long userId, Long assignedTo) {
+    public Ticket(String title, String description, TicketCategory category, TicketPriority priority, String userId, Long assignedTo) {
         this();
         this.title = title;
         this.description = description;
