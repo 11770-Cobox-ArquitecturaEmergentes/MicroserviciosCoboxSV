@@ -1,6 +1,10 @@
 spring:
   application:
     name: fleet-service
+  cloud:
+    openfeign:
+      okhttp:
+        enabled: true
   config:
     import: "optional:configserver:http://config-service:8888"
   security:
