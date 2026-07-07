@@ -1,4 +1,4 @@
-package org.upc.supportservice.shared.domain.model.aggregates;
+package org.upc.reportservice.shared.domain.model.aggregates;
 
 import jakarta.persistence.*;
 import lombok.Getter;

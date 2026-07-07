@@ -1,4 +1,4 @@
-package org.upc.supportservice.shared.infrastructure.persistence.jpa.configuration.strategy;
+package org.upc.reportservice.shared.infrastructure.persistence.jpa.configuration.strategy;
 
 import org.hibernate.boot.model.naming.Identifier;
 import org.hibernate.boot.model.naming.PhysicalNamingStrategy;

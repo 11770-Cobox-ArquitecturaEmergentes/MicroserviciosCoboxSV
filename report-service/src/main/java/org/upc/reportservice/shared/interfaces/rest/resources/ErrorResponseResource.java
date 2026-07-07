@@ -1,4 +1,4 @@
-package org.upc.supportservice.shared.interfaces.rest.resources;
+package org.upc.reportservice.shared.interfaces.rest.resources;
 
 import java.time.LocalDateTime;
 

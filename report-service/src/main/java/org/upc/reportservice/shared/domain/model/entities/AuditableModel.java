@@ -1,4 +1,4 @@
-package org.upc.supportservice.shared.domain.model.entities;
+package org.upc.reportservice.shared.domain.model.entities;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
