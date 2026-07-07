@@ -37,6 +37,18 @@ public class AiValidationController {
         return ResponseEntity.ok(queryService.getAnalysis(clientEvidenceId));
     }
 
+    @GetMapping("/evidence-analyses/{clientEvidenceId}/preview-url")
+    public ResponseEntity<EvidencePreviewUrlResource> getAnalysisPreviewUrl(@PathVariable UUID clientEvidenceId) {
+        return ResponseEntity.ok(commandService.createPreviewUrl(clientEvidenceId));
+    }
+
+    @PatchMapping("/evidence-analyses/{clientEvidenceId}/review")
+    public ResponseEntity<EvidenceAnalysisResource> reviewAnalysis(
+            @PathVariable UUID clientEvidenceId,
+            @RequestBody ReviewEvidenceAnalysisResource resource) {
+        return ResponseEntity.ok(commandService.reviewAnalysis(clientEvidenceId, resource));
+    }
+
     @GetMapping("/alerts")
     public ResponseEntity<List<AiAlertResource>> getAlerts() {
         return ResponseEntity.ok(queryService.getAlerts());

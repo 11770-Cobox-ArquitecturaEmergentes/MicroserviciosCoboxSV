@@ -25,6 +25,7 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -77,6 +78,8 @@ public class UploadIntentCommandServiceImpl implements UploadIntentCommandServic
                 resource.orderId(),
                 resource.routeId(),
                 resource.type().trim(),
+                clean(resource.sourceType()),
+                clean(resource.sourceId()),
                 objectKey(driverId, resource.routeId(), resource.orderId(), resource.clientEvidenceId()),
                 resource.sha256().trim(),
                 resource.mimeType().trim(),
@@ -173,19 +176,21 @@ public class UploadIntentCommandServiceImpl implements UploadIntentCommandServic
 
     private String payload(UploadIntent intent) {
         try {
-            return objectMapper.writeValueAsString(Map.ofEntries(
-                    Map.entry("uploadIntentId", intent.getUploadIntentId().toString()),
-                    Map.entry("clientEvidenceId", intent.getClientEvidenceId().toString()),
-                    Map.entry("driverId", intent.getDriverId()),
-                    Map.entry("orderId", intent.getOrderId()),
-                    Map.entry("routeId", intent.getRouteId()),
-                    Map.entry("type", intent.getType()),
-                    Map.entry("objectKey", intent.getObjectKey()),
-                    Map.entry("sha256", intent.getSha256()),
-                    Map.entry("mimeType", intent.getMimeType()),
-                    Map.entry("sizeBytes", intent.getSizeBytes()),
-                    Map.entry("confirmedAt", intent.getConfirmedAt().toString())
-            ));
+            var payload = new LinkedHashMap<String, Object>();
+            payload.put("uploadIntentId", intent.getUploadIntentId().toString());
+            payload.put("clientEvidenceId", intent.getClientEvidenceId().toString());
+            payload.put("driverId", intent.getDriverId());
+            payload.put("orderId", intent.getOrderId());
+            payload.put("routeId", intent.getRouteId());
+            payload.put("type", intent.getType());
+            payload.put("sourceType", intent.getSourceType());
+            payload.put("sourceId", intent.getSourceId());
+            payload.put("objectKey", intent.getObjectKey());
+            payload.put("sha256", intent.getSha256());
+            payload.put("mimeType", intent.getMimeType());
+            payload.put("sizeBytes", intent.getSizeBytes());
+            payload.put("confirmedAt", intent.getConfirmedAt().toString());
+            return objectMapper.writeValueAsString(payload);
         } catch (JsonProcessingException e) {
             throw new UploadConfirmationException("Could not serialize EvidenceUploadConfirmed payload");
         }
@@ -200,7 +205,9 @@ public class UploadIntentCommandServiceImpl implements UploadIntentCommandServic
                 upload == null ? "PUT" : upload.httpMethod(),
                 upload == null ? Map.of() : upload.requiredHeaders(),
                 intent.getExpiresAt(),
-                intent.getStatus()
+                intent.getStatus(),
+                intent.getSourceType(),
+                intent.getSourceId()
         );
     }
 
@@ -224,5 +231,9 @@ public class UploadIntentCommandServiceImpl implements UploadIntentCommandServic
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private String clean(String value) {
+        return isBlank(value) ? null : value.trim();
     }
 }

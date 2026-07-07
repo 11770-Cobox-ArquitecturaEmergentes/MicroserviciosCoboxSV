@@ -14,6 +14,8 @@ public record UploadIntentResource(
         String httpMethod,
         Map<String, String> requiredHeaders,
         Instant expiresAt,
-        UploadIntentStatus status
+        UploadIntentStatus status,
+        String sourceType,
+        String sourceId
 ) {
 }

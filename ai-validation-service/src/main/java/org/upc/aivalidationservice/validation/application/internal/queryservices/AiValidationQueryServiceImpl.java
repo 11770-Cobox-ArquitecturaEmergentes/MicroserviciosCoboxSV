@@ -70,12 +70,18 @@ public class AiValidationQueryServiceImpl implements AiValidationQueryService {
                 analysis.getOrderId(),
                 analysis.getRouteId(),
                 analysis.getEvidenceType(),
+                analysis.getSourceType(),
+                analysis.getSourceId(),
                 analysis.getStatus(),
                 analysis.getProvider(),
                 analysis.getConfidenceScore(),
                 analysis.getFraudScore(),
                 analysis.getValidationSummary(),
                 analysis.getFailureReason(),
+                analysis.getReviewStatus() != null ? analysis.getReviewStatus().name() : null,
+                analysis.getReviewNotes(),
+                analysis.getReviewedAt(),
+                null,
                 analysis.getCreatedAt(),
                 analysis.getCompletedAt()
         );

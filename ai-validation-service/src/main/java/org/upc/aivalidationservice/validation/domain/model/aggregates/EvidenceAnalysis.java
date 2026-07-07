@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.upc.aivalidationservice.validation.domain.model.valueobjects.AnalysisStatus;
+import org.upc.aivalidationservice.validation.domain.model.valueobjects.EvidenceReviewStatus;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -29,6 +30,8 @@ public class EvidenceAnalysis {
     private Long orderId;
     private Long routeId;
     private String evidenceType;
+    private String sourceType;
+    private String sourceId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -50,19 +53,32 @@ public class EvidenceAnalysis {
     @Column(length = 2000)
     private String failureReason;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private EvidenceReviewStatus reviewStatus;
+
+    @Column(length = 2000)
+    private String reviewNotes;
+
+    private Instant reviewedAt;
+
     @Column(nullable = false)
     private Instant createdAt;
 
     private Instant completedAt;
 
-    public EvidenceAnalysis(UUID clientEvidenceId, String objectKey, Long driverId, Long orderId, Long routeId, String evidenceType) {
+    public EvidenceAnalysis(UUID clientEvidenceId, String objectKey, Long driverId, Long orderId, Long routeId,
+                            String evidenceType, String sourceType, String sourceId) {
         this.clientEvidenceId = clientEvidenceId;
         this.objectKey = objectKey;
         this.driverId = driverId;
         this.orderId = orderId;
         this.routeId = routeId;
         this.evidenceType = evidenceType;
+        this.sourceType = sourceType;
+        this.sourceId = sourceId;
         this.status = AnalysisStatus.PENDING;
+        this.reviewStatus = EvidenceReviewStatus.PENDING;
         this.createdAt = Instant.now();
     }
 
@@ -88,6 +104,15 @@ public class EvidenceAnalysis {
         this.status = AnalysisStatus.FAILED;
         this.failureReason = truncate(failureReason);
         this.completedAt = Instant.now();
+    }
+
+    public void review(EvidenceReviewStatus reviewStatus, String reviewNotes) {
+        if (reviewStatus == null || reviewStatus == EvidenceReviewStatus.PENDING) {
+            throw new IllegalArgumentException("reviewStatus must be ACCEPTED or REJECTED");
+        }
+        this.reviewStatus = reviewStatus;
+        this.reviewNotes = truncate(reviewNotes);
+        this.reviewedAt = Instant.now();
     }
 
     public boolean isTerminal() {

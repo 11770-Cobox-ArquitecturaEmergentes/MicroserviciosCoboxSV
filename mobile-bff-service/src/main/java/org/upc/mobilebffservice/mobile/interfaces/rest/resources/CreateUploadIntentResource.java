@@ -10,6 +10,8 @@ public record CreateUploadIntentResource(
         String type,
         String mimeType,
         Long sizeBytes,
-        String sha256
+        String sha256,
+        String sourceType,
+        String sourceId
 ) {
 }

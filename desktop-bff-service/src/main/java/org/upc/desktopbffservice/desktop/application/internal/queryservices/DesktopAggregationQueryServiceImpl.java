@@ -328,6 +328,7 @@ public class DesktopAggregationQueryServiceImpl implements DesktopAggregationQue
         if (alertDegradation != null) {
             degraded.add(new DegradedSectionResource("smartvision.alerts", alertDegradation));
         }
+        var previewUrl = previewUrl(analysis, degraded);
         var route = analysis.routeId() == null
                 ? null
                 : optionalSection("route", degraded, () -> toRouteSummary(fleetClient.getRouteById(analysis.routeId())));
@@ -341,7 +342,7 @@ public class DesktopAggregationQueryServiceImpl implements DesktopAggregationQue
                 ? null
                 : optionalSection("order", degraded, () -> toOrderSummary(deliveryClient.getOrderById(analysis.orderId())));
         return new SmartVisionAnalysisOverviewResource(
-                toSmartVisionAnalysis(analysis),
+                toSmartVisionAnalysis(analysis, previewUrl),
                 alerts.stream().map(this::toSmartVisionAlert).toList(),
                 driver,
                 route,
@@ -349,6 +350,19 @@ public class DesktopAggregationQueryServiceImpl implements DesktopAggregationQue
                 order,
                 degraded
         );
+    }
+
+    private String previewUrl(EvidenceAnalysisClientResource analysis, List<DegradedSectionResource> degraded) {
+        if (analysis == null || analysis.clientEvidenceId() == null) {
+            return null;
+        }
+        try {
+            var preview = aiValidationClient.getAnalysisPreviewUrl(analysis.clientEvidenceId());
+            return preview != null ? preview.previewUrl() : null;
+        } catch (Exception ex) {
+            degraded.add(new DegradedSectionResource("smartvision.preview", reason(ex)));
+            return analysis.previewUrl();
+        }
     }
 
     private SmartVisionAlertResource toSmartVisionAlert(AiAlertClientResource alert) {
@@ -371,6 +385,10 @@ public class DesktopAggregationQueryServiceImpl implements DesktopAggregationQue
     }
 
     private SmartVisionAnalysisResource toSmartVisionAnalysis(EvidenceAnalysisClientResource analysis) {
+        return toSmartVisionAnalysis(analysis, analysis != null ? analysis.previewUrl() : null);
+    }
+
+    private SmartVisionAnalysisResource toSmartVisionAnalysis(EvidenceAnalysisClientResource analysis, String previewUrl) {
         if (analysis == null) {
             return null;
         }
@@ -381,12 +399,18 @@ public class DesktopAggregationQueryServiceImpl implements DesktopAggregationQue
                 analysis.orderId(),
                 analysis.routeId(),
                 analysis.evidenceType(),
+                analysis.sourceType(),
+                analysis.sourceId(),
                 analysis.status(),
                 analysis.provider(),
                 analysis.confidenceScore(),
                 analysis.fraudScore(),
                 analysis.validationSummary(),
                 analysis.failureReason(),
+                analysis.reviewStatus(),
+                analysis.reviewNotes(),
+                analysis.reviewedAt(),
+                previewUrl,
                 analysis.createdAt(),
                 analysis.completedAt()
         );

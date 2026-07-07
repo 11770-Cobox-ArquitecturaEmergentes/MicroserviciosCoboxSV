@@ -10,6 +10,7 @@ import org.upc.aivalidationservice.validation.infrastructure.clients.edge.EdgeCl
 import org.upc.aivalidationservice.validation.infrastructure.clients.incident.IncidentClient;
 import org.upc.aivalidationservice.validation.infrastructure.persistence.jpa.repositories.AiAlertRepository;
 import org.upc.aivalidationservice.validation.infrastructure.persistence.jpa.repositories.EvidenceAnalysisRepository;
+import org.upc.aivalidationservice.validation.infrastructure.storage.EvidencePreviewStorageService;
 import org.upc.aivalidationservice.validation.infrastructure.storage.StorageProperties;
 import org.upc.aivalidationservice.validation.interfaces.messaging.EvidenceUploadConfirmedEvent;
 
@@ -42,6 +43,7 @@ class AiValidationCommandServiceImplTests {
                 edgeClient,
                 incidentClient,
                 new StorageProperties("bucket", "us-east-1"),
+                mock(EvidencePreviewStorageService.class),
                 new ObjectMapper(),
                 rabbitTemplate
         );
@@ -51,7 +53,9 @@ class AiValidationCommandServiceImplTests {
                 event.driverId(),
                 event.orderId(),
                 event.routeId(),
-                event.type()
+                event.type(),
+                event.sourceType(),
+                event.sourceId()
         );
         existing.complete(
                 org.upc.aivalidationservice.validation.domain.model.valueobjects.AnalysisStatus.COMPLETED,
@@ -88,6 +92,7 @@ class AiValidationCommandServiceImplTests {
                 edgeClient,
                 incidentClient,
                 new StorageProperties("bucket", "us-east-1"),
+                mock(EvidencePreviewStorageService.class),
                 new ObjectMapper(),
                 rabbitTemplate
         );
@@ -122,6 +127,8 @@ class AiValidationCommandServiceImplTests {
                 100L,
                 20L,
                 "DELIVERY_PHOTO",
+                null,
+                null,
                 "drivers/10/routes/20/orders/100/evidences/e1",
                 "sha",
                 "image/jpeg",

@@ -20,6 +20,9 @@ public interface AiValidationClient {
     @GetMapping("/api/v1/ai-validation/evidence-analyses/{clientEvidenceId}")
     EvidenceAnalysisClientResource getAnalysis(@PathVariable UUID clientEvidenceId);
 
+    @GetMapping("/api/v1/ai-validation/evidence-analyses/{clientEvidenceId}/preview-url")
+    EvidencePreviewUrlClientResource getAnalysisPreviewUrl(@PathVariable UUID clientEvidenceId);
+
     @GetMapping("/api/v1/ai-validation/evidence-analyses")
     List<EvidenceAnalysisClientResource> getAnalyses(
             @RequestParam(required = false) String status,

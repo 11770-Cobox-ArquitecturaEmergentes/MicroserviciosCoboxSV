@@ -33,6 +33,12 @@ public class AiValidationControllerAdvice {
         return error(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponseResource> handleIllegalArgument(IllegalArgumentException ex,
+                                                                       HttpServletRequest request) {
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseResource> handleGeneric(Exception ex, HttpServletRequest request) {
         return error(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request);

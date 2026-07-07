@@ -47,6 +47,8 @@ class MobileBffRepositoryConstraintsTests {
                 100L,
                 20L,
                 "DELIVERY_PHOTO",
+                null,
+                null,
                 "drivers/7/routes/20/orders/100/evidences/" + clientEvidenceId,
                 "b6d81b360a5672d80c27430f39153e2c6f32f2255f6a071d9f8efb9bd2c7d1c2",
                 "image/jpeg",

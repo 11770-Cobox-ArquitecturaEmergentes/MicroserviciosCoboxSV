@@ -10,6 +10,8 @@ public record EvidenceUploadConfirmedEvent(
         Long orderId,
         Long routeId,
         String type,
+        String sourceType,
+        String sourceId,
         String objectKey,
         String sha256,
         String mimeType,

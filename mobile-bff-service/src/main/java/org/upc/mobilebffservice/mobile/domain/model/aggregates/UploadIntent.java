@@ -40,6 +40,10 @@ public class UploadIntent {
     @Column(nullable = false)
     private String type;
 
+    private String sourceType;
+
+    private String sourceId;
+
     @Column(nullable = false, length = 1000)
     private String objectKey;
 
@@ -64,14 +68,17 @@ public class UploadIntent {
 
     private Instant confirmedAt;
 
-    public UploadIntent(UUID clientEvidenceId, Long driverId, Long orderId, Long routeId, String type, String objectKey,
-                        String sha256, String mimeType, Long sizeBytes, Instant expiresAt) {
+    public UploadIntent(UUID clientEvidenceId, Long driverId, Long orderId, Long routeId, String type,
+                        String sourceType, String sourceId, String objectKey, String sha256,
+                        String mimeType, Long sizeBytes, Instant expiresAt) {
         this.uploadIntentId = UUID.randomUUID();
         this.clientEvidenceId = clientEvidenceId;
         this.driverId = driverId;
         this.orderId = orderId;
         this.routeId = routeId;
         this.type = type;
+        this.sourceType = sourceType;
+        this.sourceId = sourceId;
         this.objectKey = objectKey;
         this.sha256 = sha256;
         this.mimeType = mimeType;

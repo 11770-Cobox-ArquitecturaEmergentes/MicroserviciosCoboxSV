@@ -74,6 +74,8 @@ class AiValidationRuleEvaluatorTests {
                 100L,
                 20L,
                 "DELIVERY_PHOTO",
+                null,
+                null,
                 "drivers/10/routes/20/orders/100/evidences/e1",
                 "sha",
                 "image/jpeg",

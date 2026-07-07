@@ -10,12 +10,18 @@ public record EvidenceAnalysisClientResource(
         Long orderId,
         Long routeId,
         String evidenceType,
+        String sourceType,
+        String sourceId,
         String status,
         String provider,
         Double confidenceScore,
         Double fraudScore,
         String validationSummary,
         String failureReason,
+        String reviewStatus,
+        String reviewNotes,
+        Instant reviewedAt,
+        String previewUrl,
         Instant createdAt,
         Instant completedAt
 ) {

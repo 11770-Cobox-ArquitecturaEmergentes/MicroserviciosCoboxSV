@@ -119,7 +119,9 @@ class UploadIntentCommandServiceImplTests {
                 "DELIVERY_PHOTO",
                 "image/jpeg",
                 2048L,
-                "b6d81b360a5672d80c27430f39153e2c6f32f2255f6a071d9f8efb9bd2c7d1c2"
+                "b6d81b360a5672d80c27430f39153e2c6f32f2255f6a071d9f8efb9bd2c7d1c2",
+                null,
+                null
         );
     }
 
