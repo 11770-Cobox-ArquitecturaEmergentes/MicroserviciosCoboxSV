@@ -11,6 +11,9 @@ public record IncidentResource(
         LocalDateTime reportedAt,
         String severity,
         String status,
-        Long responsibleUserId
+        Long responsibleUserId,
+        String sourceType,
+        UUID sourceAlertId,
+        UUID sourceClientEvidenceId
 ) {
 }

@@ -10,7 +10,10 @@ public class CreateIncidentCommandFromResourceAssembler {
                 resource.type(),
                 resource.description(),
                 resource.severity(),
-                resource.responsibleUserId()
+                resource.responsibleUserId(),
+                resource.sourceType(),
+                resource.sourceAlertId(),
+                resource.sourceClientEvidenceId()
         );
     }
 }

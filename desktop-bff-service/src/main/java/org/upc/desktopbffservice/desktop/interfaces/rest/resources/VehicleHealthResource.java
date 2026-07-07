@@ -8,6 +8,7 @@ public record VehicleHealthResource(
         VehicleSummaryResource vehicle,
         List<MaintenanceOrderSummaryResource> openMaintenanceOrders,
         List<MaintenanceOrderSummaryResource> maintenanceHistory,
+        MaintenanceScheduleSummaryResource maintenanceSchedule,
         List<DegradedSectionResource> degradedSections
 ) {
 }

@@ -6,6 +6,7 @@ import org.upc.fleetservice.fleet.domain.exceptions.DriverNotFoundException;
 import org.upc.fleetservice.fleet.domain.model.aggregates.Driver;
 import org.upc.fleetservice.fleet.domain.model.commands.CreateDriverCommand;
 import org.upc.fleetservice.fleet.domain.services.DriverCommandService;
+import org.upc.fleetservice.fleet.infrastructure.messaging.FleetReportEventPublisher;
 import org.upc.fleetservice.fleet.infrastructure.persistence.jpa.repositories.DriverRepository;
 import org.upc.fleetservice.fleet.domain.model.commands.UpdateDriverStatusOnCompletedRouteCommand;
 
@@ -13,8 +14,10 @@ import org.upc.fleetservice.fleet.domain.model.commands.UpdateDriverStatusOnComp
 public class DriverCommandServiceImpl implements DriverCommandService {
 
     private final DriverRepository driverRepository;
-    public DriverCommandServiceImpl(DriverRepository driverRepository) {
+    private final FleetReportEventPublisher reportEventPublisher;
+    public DriverCommandServiceImpl(DriverRepository driverRepository, FleetReportEventPublisher reportEventPublisher) {
         this.driverRepository = driverRepository;
+        this.reportEventPublisher = reportEventPublisher;
     }
 
     @Override
@@ -27,6 +30,7 @@ public class DriverCommandServiceImpl implements DriverCommandService {
         }
         var driver = new Driver(command);
         driverRepository.save(driver);
+        reportEventPublisher.publishDriver("fleet.driver-created", driver);
         return driver.getId();
     }
 
@@ -35,6 +39,7 @@ public class DriverCommandServiceImpl implements DriverCommandService {
         driverRepository.findById(command.driverId()).map(driver -> {
             driver.returnFromRoute();
             driverRepository.save(driver);
+            reportEventPublisher.publishDriver("fleet.driver-status-updated", driver);
             return driver.getId();
         }).orElseThrow(() -> new DriverNotFoundException(command.driverId()));
     }

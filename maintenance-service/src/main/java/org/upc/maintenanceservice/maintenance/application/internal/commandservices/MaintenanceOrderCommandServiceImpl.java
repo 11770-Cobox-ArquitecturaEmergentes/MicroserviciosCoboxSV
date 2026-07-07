@@ -8,6 +8,7 @@ import org.upc.maintenanceservice.maintenance.domain.model.commands.*;
 import org.upc.maintenanceservice.maintenance.domain.model.valueobjects.MaintenanceOrderStatus;
 import org.upc.maintenanceservice.maintenance.domain.model.valueobjects.VehicleId;
 import org.upc.maintenanceservice.maintenance.domain.services.MaintenanceOrderCommandService;
+import org.upc.maintenanceservice.maintenance.infrastructure.messaging.MaintenanceReportEventPublisher;
 import org.upc.maintenanceservice.maintenance.infrastructure.persistence.jpa.repositories.MaintenanceOrderRepository;
 
 import java.util.List;
@@ -22,9 +23,12 @@ public class MaintenanceOrderCommandServiceImpl implements MaintenanceOrderComma
     );
 
     private final MaintenanceOrderRepository maintenanceOrderRepository;
+    private final MaintenanceReportEventPublisher reportEventPublisher;
 
-    public MaintenanceOrderCommandServiceImpl(MaintenanceOrderRepository maintenanceOrderRepository) {
+    public MaintenanceOrderCommandServiceImpl(MaintenanceOrderRepository maintenanceOrderRepository,
+                                              MaintenanceReportEventPublisher reportEventPublisher) {
         this.maintenanceOrderRepository = maintenanceOrderRepository;
+        this.reportEventPublisher = reportEventPublisher;
     }
 
     @Override
@@ -35,6 +39,7 @@ public class MaintenanceOrderCommandServiceImpl implements MaintenanceOrderComma
         }
         var maintenanceOrder = new MaintenanceOrder(command);
         maintenanceOrderRepository.save(maintenanceOrder);
+        reportEventPublisher.publishOrder("maintenance.order-created", maintenanceOrder);
         return maintenanceOrder.getId();
     }
 
@@ -43,6 +48,7 @@ public class MaintenanceOrderCommandServiceImpl implements MaintenanceOrderComma
         maintenanceOrderRepository.findById(command.orderId()).map(order -> {
             order.schedule(command);
             maintenanceOrderRepository.save(order);
+            reportEventPublisher.publishOrder("maintenance.order-scheduled", order);
             return order.getId();
         }).orElseThrow(() -> new MaintenanceOrderNotFoundException(command.orderId()));
     }
@@ -52,6 +58,7 @@ public class MaintenanceOrderCommandServiceImpl implements MaintenanceOrderComma
         maintenanceOrderRepository.findById(command.orderId()).map(order -> {
             order.start(command);
             maintenanceOrderRepository.save(order);
+            reportEventPublisher.publishOrder("maintenance.order-started", order);
             return order.getId();
         }).orElseThrow(() -> new MaintenanceOrderNotFoundException(command.orderId()));
     }
@@ -61,6 +68,7 @@ public class MaintenanceOrderCommandServiceImpl implements MaintenanceOrderComma
         maintenanceOrderRepository.findById(command.orderId()).map(order -> {
             order.complete(command);
             maintenanceOrderRepository.save(order);
+            reportEventPublisher.publishOrder("maintenance.order-completed", order);
             return order.getId();
         }).orElseThrow(() -> new MaintenanceOrderNotFoundException(command.orderId()));
     }
@@ -70,6 +78,7 @@ public class MaintenanceOrderCommandServiceImpl implements MaintenanceOrderComma
         maintenanceOrderRepository.findById(command.orderId()).map(order -> {
             order.cancel(command);
             maintenanceOrderRepository.save(order);
+            reportEventPublisher.publishOrder("maintenance.order-cancelled", order);
             return order.getId();
         }).orElseThrow(() -> new MaintenanceOrderNotFoundException(command.orderId()));
     }
@@ -79,6 +88,7 @@ public class MaintenanceOrderCommandServiceImpl implements MaintenanceOrderComma
         maintenanceOrderRepository.findById(command.orderId()).map(order -> {
             order.registerJob(command);
             maintenanceOrderRepository.save(order);
+            reportEventPublisher.publishOrder("maintenance.job-registered", order);
             return order.getId();
         }).orElseThrow(() -> new MaintenanceOrderNotFoundException(command.orderId()));
     }
@@ -88,6 +98,7 @@ public class MaintenanceOrderCommandServiceImpl implements MaintenanceOrderComma
         maintenanceOrderRepository.findById(command.orderId()).map(order -> {
             order.requestParts(command);
             maintenanceOrderRepository.save(order);
+            reportEventPublisher.publishOrder("maintenance.parts-requested", order);
             return order.getId();
         }).orElseThrow(() -> new MaintenanceOrderNotFoundException(command.orderId()));
     }
@@ -97,6 +108,7 @@ public class MaintenanceOrderCommandServiceImpl implements MaintenanceOrderComma
         maintenanceOrderRepository.findById(command.orderId()).map(order -> {
             order.receiveParts(command);
             maintenanceOrderRepository.save(order);
+            reportEventPublisher.publishOrder("maintenance.parts-received", order);
             return order.getId();
         }).orElseThrow(() -> new MaintenanceOrderNotFoundException(command.orderId()));
     }
@@ -106,6 +118,7 @@ public class MaintenanceOrderCommandServiceImpl implements MaintenanceOrderComma
         maintenanceOrderRepository.findById(command.orderId()).map(order -> {
             order.registerCost(command);
             maintenanceOrderRepository.save(order);
+            reportEventPublisher.publishOrder("maintenance.cost-registered", order);
             return order.getId();
         }).orElseThrow(() -> new MaintenanceOrderNotFoundException(command.orderId()));
     }

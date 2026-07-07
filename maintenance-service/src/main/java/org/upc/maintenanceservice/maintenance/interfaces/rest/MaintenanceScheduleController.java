@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.upc.maintenanceservice.maintenance.domain.model.queries.GetMaintenanceScheduleByIdQuery;
+import org.upc.maintenanceservice.maintenance.domain.model.queries.GetMaintenanceScheduleByVehicleIdQuery;
 import org.upc.maintenanceservice.maintenance.domain.services.MaintenanceScheduleCommandService;
 import org.upc.maintenanceservice.maintenance.domain.services.MaintenanceScheduleQueryService;
 import org.upc.maintenanceservice.maintenance.interfaces.rest.resources.*;
@@ -124,6 +125,21 @@ public class MaintenanceScheduleController {
     @GetMapping("/{scheduleId}")
     public ResponseEntity<MaintenanceScheduleResource> getScheduleById(@PathVariable Long scheduleId) {
         var schedule = maintenanceScheduleQueryService.handle(new GetMaintenanceScheduleByIdQuery(scheduleId));
+        if (schedule.isEmpty()) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(MaintenanceScheduleResourceFromEntityAssembler.toResourceFromEntity(schedule.get()));
+    }
+
+    @Operation(summary = "Get a maintenance schedule by vehicle ID",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Schedule found",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = MaintenanceScheduleResource.class))),
+                    @ApiResponse(responseCode = "404", description = "Schedule not found",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            })
+    @GetMapping("/vehicle/{vehicleId}")
+    public ResponseEntity<MaintenanceScheduleResource> getScheduleByVehicleId(@PathVariable Long vehicleId) {
+        var schedule = maintenanceScheduleQueryService.handle(new GetMaintenanceScheduleByVehicleIdQuery(vehicleId));
         if (schedule.isEmpty()) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(MaintenanceScheduleResourceFromEntityAssembler.toResourceFromEntity(schedule.get()));
     }

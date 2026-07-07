@@ -17,4 +17,7 @@ public interface MaintenanceClient {
 
     @GetMapping("/api/v1/maintenance-orders/vehicle/{vehicleId}/history")
     List<MaintenanceOrderClientResource> getHistoryByVehicle(@PathVariable Long vehicleId);
+
+    @GetMapping("/api/v1/maintenance-schedules/vehicle/{vehicleId}")
+    MaintenanceScheduleClientResource getScheduleByVehicle(@PathVariable Long vehicleId);
 }

@@ -20,10 +20,10 @@ spring:
         physical-strategy: org.upc.reportservice.shared.infrastructure.persistence.jpa.configuration.strategy.SnakeCaseWithPluralizedTablePhysicalNamingStrategy
     show-sql: true
   rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
+    host: "${RABBITMQ_HOST:rabbitmq}"
+    port: "${RABBITMQ_PORT:5672}"
+    username: "${RABBITMQ_USERNAME:${RABBITMQ_DEFAULT_USER:guest}}"
+    password: "${RABBITMQ_PASSWORD:${RABBITMQ_DEFAULT_PASS:guest}}"
 
 auth0:
   audience: "${AUTH0_AUDIENCE:https://api.coboxsv.dev}"
