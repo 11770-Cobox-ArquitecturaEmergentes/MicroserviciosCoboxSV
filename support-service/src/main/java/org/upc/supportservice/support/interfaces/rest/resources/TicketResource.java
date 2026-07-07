@@ -13,7 +13,7 @@ public record TicketResource(
         TicketCategory category,
         TicketPriority priority,
         TicketStatus status,
-        Long userId,
+        String userId,
         Long assignedTo,
         Date createdAt,
         Date updatedAt

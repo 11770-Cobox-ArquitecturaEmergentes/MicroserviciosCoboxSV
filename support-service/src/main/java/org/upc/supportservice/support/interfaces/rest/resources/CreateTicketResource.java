@@ -11,7 +11,6 @@ public record CreateTicketResource(
         @NotBlank @Size(max = 2000) String description,
         @NotNull TicketCategory category,
         @NotNull TicketPriority priority,
-        @NotNull Long userId,
         Long assignedTo
 ) {
 }

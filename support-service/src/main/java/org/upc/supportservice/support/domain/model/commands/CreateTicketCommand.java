@@ -8,7 +8,7 @@ public record CreateTicketCommand(
         String description,
         TicketCategory category,
         TicketPriority priority,
-        Long userId,
+        String userId,
         Long assignedTo
 ) {
 }
