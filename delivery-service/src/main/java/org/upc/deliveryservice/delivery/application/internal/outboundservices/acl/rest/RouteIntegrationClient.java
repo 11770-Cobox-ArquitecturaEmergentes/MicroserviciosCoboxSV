@@ -1,8 +1,8 @@
 package org.upc.deliveryservice.delivery.application.internal.outboundservices.acl.rest;
 
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.upc.deliveryservice.delivery.application.internal.outboundservices.acl.resource.AddOrderDeliveredResource;
 
@@ -10,7 +10,7 @@ import org.upc.deliveryservice.delivery.application.internal.outboundservices.ac
 @FeignClient(name = "fleet-service")
 public interface RouteIntegrationClient {
 
-    @PatchMapping(
+    @PostMapping(
             value = "/api/v1/routes/{routeId}/delivered-orders",
             consumes = "application/json"
     )
