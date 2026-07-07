@@ -9,6 +9,7 @@ import org.upc.deliveryservice.delivery.domain.model.commands.MarkAsCompletedOrd
 import org.upc.deliveryservice.delivery.domain.model.commands.MarkAsInTransitOrderCommand;
 import org.upc.deliveryservice.delivery.domain.model.commands.MarkAsReadyForDispatchOrderCommand;
 import org.upc.deliveryservice.delivery.domain.services.OrderCommandService;
+import org.upc.deliveryservice.delivery.infrastructure.messaging.DeliveryReportEventPublisher;
 import org.upc.deliveryservice.delivery.infraestructure.persistence.jpa.repositories.OrderRepository;
 
 
@@ -16,14 +17,17 @@ import org.upc.deliveryservice.delivery.infraestructure.persistence.jpa.reposito
 public class OrderCommandServiceImpl implements OrderCommandService {
 
     private final OrderRepository orderRepository;
-    public OrderCommandServiceImpl(OrderRepository orderRepository) {
+    private final DeliveryReportEventPublisher reportEventPublisher;
+    public OrderCommandServiceImpl(OrderRepository orderRepository, DeliveryReportEventPublisher reportEventPublisher) {
         this.orderRepository = orderRepository;
+        this.reportEventPublisher = reportEventPublisher;
     }
 
     @Override
     public Long handle(CreateOrderCommand command) {
         var order = new Order(command);
         orderRepository.save(order);
+        reportEventPublisher.publishOrder("delivery.order-created", order);
         return order.getId();
     }
 
@@ -32,6 +36,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         orderRepository.findById(command.orderId()).map(order -> {
             order.markAsInTransit();
             orderRepository.save(order);
+            reportEventPublisher.publishOrder("delivery.order-in-transit", order);
             return order.getId();
         }).orElseThrow(() -> new OrderNotFoundException(command.orderId()));
     }
@@ -41,6 +46,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         orderRepository.findById(command.orderId()).map(order -> {
             order.markAsReadyForDispatch();
             orderRepository.save(order);
+            reportEventPublisher.publishOrder("delivery.order-ready-for-dispatch", order);
             return order.getId();
         }).orElseThrow(() -> new OrderNotFoundException(command.orderId()));
     }
@@ -55,6 +61,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
                     command.routeId()
             );
             orderRepository.save(order);
+            reportEventPublisher.publishOrder("delivery.order-delivered", order);
             return order.getId();
         }).orElseThrow(() -> new OrderNotFoundException(command.orderId()));
     }

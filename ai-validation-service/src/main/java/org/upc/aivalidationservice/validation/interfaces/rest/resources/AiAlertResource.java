@@ -13,6 +13,10 @@ public record AiAlertResource(
         AlertSeverity severity,
         AlertStatus status,
         String message,
-        Instant createdAt
+        Instant createdAt,
+        Instant acknowledgedAt,
+        Instant resolvedAt,
+        String resolutionNotes,
+        UUID linkedIncidentId
 ) {
 }

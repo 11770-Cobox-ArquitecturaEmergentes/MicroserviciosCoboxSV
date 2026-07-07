@@ -45,6 +45,13 @@ public class Incident extends AuditableAbstractAggregateRoot<Incident> {
     @AttributeOverride(name = "responsibleUserId", column = @Column(name = "responsible_user_id"))
     private ResponsibleUserId responsibleUserId;
 
+    private String sourceType;
+
+    @Column(unique = true)
+    private UUID sourceAlertId;
+
+    private UUID sourceClientEvidenceId;
+
     protected Incident() {
     }
 
@@ -58,6 +65,9 @@ public class Incident extends AuditableAbstractAggregateRoot<Incident> {
         if (command.responsibleUserId() != null) {
             this.responsibleUserId = new ResponsibleUserId(command.responsibleUserId());
         }
+        this.sourceType = command.sourceType() == null || command.sourceType().isBlank() ? "MANUAL" : command.sourceType();
+        this.sourceAlertId = command.sourceAlertId();
+        this.sourceClientEvidenceId = command.sourceClientEvidenceId();
         this.registerEvent(new IncidentReportedEvent(this.incidentId.incidentId(), this.type, this.severity, this.status));
     }
 

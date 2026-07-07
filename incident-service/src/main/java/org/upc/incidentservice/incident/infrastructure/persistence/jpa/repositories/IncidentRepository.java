@@ -9,6 +9,7 @@ import org.upc.incidentservice.incident.domain.model.valueobjects.ResponsibleUse
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface IncidentRepository extends JpaRepository<Incident, Long> {
@@ -17,4 +18,6 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     List<Incident> findByStatus(IncidentStatus status);
 
     List<Incident> findByResponsibleUserId(ResponsibleUserId responsibleUserId);
+
+    Optional<Incident> findBySourceAlertId(UUID sourceAlertId);
 }

@@ -16,6 +16,7 @@ import org.upc.incidentservice.incident.domain.model.commands.CreateIncidentComm
 import org.upc.incidentservice.incident.domain.model.commands.UpdateIncidentStatusCommand;
 import org.upc.incidentservice.incident.domain.model.queries.GetAllIncidentsQuery;
 import org.upc.incidentservice.incident.domain.model.queries.GetIncidentByIdQuery;
+import org.upc.incidentservice.incident.domain.model.queries.GetIncidentBySourceAlertIdQuery;
 import org.upc.incidentservice.incident.domain.model.queries.GetIncidentByTechnicalIdQuery;
 import org.upc.incidentservice.incident.domain.services.IncidentCommandService;
 import org.upc.incidentservice.incident.domain.services.IncidentQueryService;
@@ -98,6 +99,25 @@ public class IncidentController {
         var command = AssignResponsibleUserCommandFromResourceAssembler.toCommandFromResource(incidentId, resource);
         incidentCommandService.handle(command);
         var incident = incidentQueryService.handle(new GetIncidentByIdQuery(incidentId));
+        if (incident.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        var incidentResource = IncidentResourceFromEntityAssembler.toResourceFromEntity(incident.get());
+        return ResponseEntity.ok(incidentResource);
+    }
+
+    @Operation(summary = "Get an incident by its source AI alert",
+            description = "Retrieves the incident linked to a SmartVision alert UUID.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Incident found",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = IncidentResource.class))),
+                    @ApiResponse(responseCode = "404", description = "Incident not found",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            })
+    @GetMapping("/source/ai-alert/{alertId}")
+    public ResponseEntity<IncidentResource> getIncidentByAiAlertId(@PathVariable UUID alertId) {
+        var incident = incidentQueryService.handle(new GetIncidentBySourceAlertIdQuery(alertId));
         if (incident.isEmpty()) {
             return ResponseEntity.notFound().build();
         }

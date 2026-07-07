@@ -55,7 +55,7 @@ jobs:
           TAG="$IMAGE_TAG"
 
           # Array con los nombres exactos de las carpetas de tu monorepo
-          declare -a svc=("config-service" "eureka-service" "iam-service" "fleet-service" "delivery-service" "support-service" "incident-service" "maintenance-service" "edge-service" "mobile-bff-service" "desktop-bff-service" "ai-validation-service" "gateway-service")
+          declare -a svc=("config-service" "eureka-service" "iam-service" "fleet-service" "delivery-service" "support-service" "incident-service" "maintenance-service" "edge-service" "mobile-bff-service" "desktop-bff-service" "ai-validation-service" "report-service" "gateway-service")
 
           for s in "${svc[@]}"; do
             echo "Construyendo y subiendo imagen para: $s"
@@ -131,6 +131,7 @@ jobs:
             /opt/cobox/env/edge.env
             /opt/cobox/env/mobile-bff.env        
             /opt/cobox/env/ai-validation.env
+            /opt/cobox/env/report.env
             /opt/cobox/env/incident.env
             /opt/cobox/env/maintenance.env
             /opt/cobox/env/rabbitmq.env
@@ -161,6 +162,7 @@ jobs:
             /opt/cobox/env/edge.env \
             /opt/cobox/env/mobile-bff.env \
             /opt/cobox/env/ai-validation.env \
+            /opt/cobox/env/report.env \
             /opt/cobox/env/incident.env \
             /opt/cobox/env/maintenance.env; do
             validate_env_key "$file" POSTGRES_HOST

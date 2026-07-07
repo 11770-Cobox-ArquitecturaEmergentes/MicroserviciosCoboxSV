@@ -62,12 +62,13 @@ class DesktopDashboardControllerTests {
                 new VehicleSummaryResource(9L, "ABC-123", 1200.0, "IN_ROUTE"),
                 List.of(),
                 List.of(),
-                List.of(new DegradedSectionResource("maintenance.schedules", "not exposed"))
+                null,
+                List.of(new DegradedSectionResource("maintenance.schedule", "not exposed"))
         ));
 
         mockMvc.perform(get("/api/v1/desktop/vehicles/{vehicleId}/health", 9L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.vehicle.id").value(9))
-                .andExpect(jsonPath("$.degradedSections[0].section").value("maintenance.schedules"));
+                .andExpect(jsonPath("$.degradedSections[0].section").value("maintenance.schedule"));
     }
 }

@@ -14,7 +14,10 @@ public class IncidentResourceFromEntityAssembler {
                 entity.getReportedAt(),
                 entity.getSeverity() != null ? entity.getSeverity().name() : null,
                 entity.getStatus() != null ? entity.getStatus().name() : null,
-                entity.getResponsibleUserId() != null ? entity.getResponsibleUserId().responsibleUserId() : null
+                entity.getResponsibleUserId() != null ? entity.getResponsibleUserId().responsibleUserId() : null,
+                entity.getSourceType(),
+                entity.getSourceAlertId(),
+                entity.getSourceClientEvidenceId()
         );
     }
 }

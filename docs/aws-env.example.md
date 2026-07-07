@@ -28,11 +28,14 @@ AUTH0_ISSUER_URI=https://your-auth0-domain/
 AUTH0_AUDIENCE=https://api.coboxsv.dev
 ```
 
-`mobile-bff.env` and `ai-validation.env` also use RabbitMQ and S3 settings:
+RabbitMQ client services load `/opt/cobox/env/rabbitmq.env` in `docker-compose.aws.yml`.
+Keep `RABBITMQ_DEFAULT_USER` and `RABBITMQ_DEFAULT_PASS` there; the Spring
+services accept those names as fallbacks for `RABBITMQ_USERNAME` and
+`RABBITMQ_PASSWORD`.
+
+`mobile-bff.env` and `ai-validation.env` also use S3 settings:
 
 ```env
-RABBITMQ_USERNAME=replace-with-rabbitmq-user
-RABBITMQ_PASSWORD=replace-with-rabbitmq-password
 AWS_REGION=us-east-1
 S3_EVIDENCE_BUCKET=replace-with-bucket
 S3_PRESIGNED_URL_EXPIRATION_MINUTES=15

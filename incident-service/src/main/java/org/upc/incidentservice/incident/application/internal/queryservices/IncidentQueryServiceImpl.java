@@ -44,4 +44,9 @@ public class IncidentQueryServiceImpl implements IncidentQueryService {
     public List<Incident> handle(GetIncidentsByResponsibleUserIdQuery query) {
         return incidentRepository.findByResponsibleUserId(new ResponsibleUserId(query.responsibleUserId()));
     }
+
+    @Override
+    public Optional<Incident> handle(GetIncidentBySourceAlertIdQuery query) {
+        return incidentRepository.findBySourceAlertId(query.sourceAlertId());
+    }
 }

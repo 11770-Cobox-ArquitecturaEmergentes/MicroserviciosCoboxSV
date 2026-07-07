@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface AiAlertRepository extends JpaRepository<AiAlert, Long> {
+    Optional<AiAlert> findByAlertId(UUID alertId);
     List<AiAlert> findByClientEvidenceId(UUID clientEvidenceId);
     List<AiAlert> findByStatusOrderByCreatedAtDesc(AlertStatus status);
     Optional<AiAlert> findByClientEvidenceIdAndType(UUID clientEvidenceId, String type);
