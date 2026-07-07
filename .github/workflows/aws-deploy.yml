@@ -53,20 +53,20 @@ jobs:
         run: |
           ECR="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           TAG="$IMAGE_TAG"
-          
+
           # Array con los nombres exactos de las carpetas de tu monorepo
-          declare -a svc=("config-service" "eureka-service" "iam-service" "fleet-service" "delivery-service" "gateway-service")
+          declare -a svc=("config-service" "eureka-service" "iam-service" "fleet-service" "delivery-service" "support-service" "incident-service" "maintenance-service" "edge-service" "mobile-bff-service" "desktop-bff-service" "ai-validation-service" "gateway-service")
 
           for s in "${svc[@]}"; do
             echo "Construyendo y subiendo imagen para: $s"
-            
+
             # Construye usando el Dockerfile dentro de la carpeta de cada microservicio
             docker build -t $s:latest ./$s
-            
+
             # Etiqueta con el tag temporal y el latest
             docker tag $s:latest $ECR/$s:$TAG
             docker tag $s:latest $ECR/$s:latest
-            
+
             # Sube ambas etiquetas al repositorio ECR correspondiente
             docker push $ECR/$s:$TAG
             docker push $ECR/$s:latest
@@ -93,13 +93,12 @@ jobs:
         run: |
           SSH_OPTS="-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o ConnectionAttempts=3 -vvv"
           ssh $SSH_OPTS -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            'set -e; sudo mkdir -p /opt/cobox && sudo chown -R $(whoami):$(whoami) /opt/cobox'
+            'set -e; sudo mkdir -p /opt/cobox/env /opt/cobox/data/certbot/conf /opt/cobox/data/certbot/www && sudo chown -R $(whoami):$(whoami) /opt/cobox'
 
-      - name: Copy compose file to EC2
+      - name: Copy runtime files to EC2
         run: |
           SCP_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o ConnectionAttempts=3 -vvv"
-          # Solo se copia el docker-compose.aws.yml (Añade prometheus.yml si lo tienes en la raíz)
-          scp $SCP_OPTS -i key.pem docker-compose.aws.yml \
+          scp $SCP_OPTS -i key.pem docker-compose.aws.yml nginx.conf prometheus.yml \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/opt/cobox/
 
       - name: Deploy remotely (Pull & Up)
@@ -109,20 +108,98 @@ jobs:
           rc=1
 
           for n in 1 2 3; do
-            ssh $SSH_OPTS -i key.pem "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
+            if ssh $SSH_OPTS -i key.pem "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
               AWS_REGION='${{ env.AWS_REGION }}' AWS_ACCOUNT_ID='${{ env.AWS_ACCOUNT_ID }}' bash -se <<'EOSSH'
           set -euo pipefail
-          
+
           ECR="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           TAG=latest
-          
+
           cd /opt/cobox
-          
+
           printf "ECR=%s\nTAG=%s\n" "$ECR" "$TAG" > .env
           [ -f /opt/cobox/cobox-env.sh ] && . /opt/cobox/cobox-env.sh || true
-          
+
+          required_files=(
+            /opt/cobox/docker-compose.aws.yml
+            /opt/cobox/nginx.conf
+            /opt/cobox/prometheus.yml
+            /opt/cobox/env/iam.env
+            /opt/cobox/env/fleet.env
+            /opt/cobox/env/delivery.env
+            /opt/cobox/env/support.env
+            /opt/cobox/env/edge.env
+            /opt/cobox/env/mobile-bff.env
+            /opt/cobox/env/desktop-bff.env
+            /opt/cobox/env/ai-validation.env
+            /opt/cobox/env/incident.env
+            /opt/cobox/env/maintenance.env
+            /opt/cobox/env/rabbitmq.env
+            /opt/cobox/env/grafana.env
+          )
+
+          for file in "${required_files[@]}"; do
+            if [ ! -s "$file" ]; then
+              echo "[ERROR] Required runtime file is missing or empty: $file"
+              exit 1
+            fi
+          done
+
+          validate_env_key() {
+            file="$1"
+            key="$2"
+            if ! grep -Eq "^${key}=.+" "$file"; then
+              echo "[ERROR] Missing ${key} in ${file}"
+              exit 1
+            fi
+          }
+
+          for file in \
+            /opt/cobox/env/iam.env \
+            /opt/cobox/env/fleet.env \
+            /opt/cobox/env/delivery.env \
+            /opt/cobox/env/support.env \
+            /opt/cobox/env/edge.env \
+            /opt/cobox/env/mobile-bff.env \
+            /opt/cobox/env/ai-validation.env \
+            /opt/cobox/env/incident.env \
+            /opt/cobox/env/maintenance.env; do
+            validate_env_key "$file" POSTGRES_HOST
+            validate_env_key "$file" POSTGRES_PORT
+            validate_env_key "$file" POSTGRES_DATABASE
+            validate_env_key "$file" POSTGRES_USER
+            validate_env_key "$file" POSTGRES_PASSWORD
+          done
+
+          validate_env_key /opt/cobox/env/rabbitmq.env RABBITMQ_DEFAULT_USER
+          validate_env_key /opt/cobox/env/rabbitmq.env RABBITMQ_DEFAULT_PASS
+          rabbitmq_user="$(awk -F= '/^RABBITMQ_DEFAULT_USER=/{print substr($0, index($0, "=") + 1)}' /opt/cobox/env/rabbitmq.env | tail -n 1)"
+          rabbitmq_pass="$(awk -F= '/^RABBITMQ_DEFAULT_PASS=/{print substr($0, index($0, "=") + 1)}' /opt/cobox/env/rabbitmq.env | tail -n 1)"
+          if [ "$rabbitmq_user" = "guest" ] || [ "$rabbitmq_pass" = "guest" ]; then
+            echo "[ERROR] RabbitMQ guest/guest credentials are not allowed in AWS"
+            exit 1
+          fi
+
+          for file in /opt/cobox/env/mobile-bff.env /opt/cobox/env/ai-validation.env; do
+            validate_env_key "$file" RABBITMQ_USERNAME
+            validate_env_key "$file" RABBITMQ_PASSWORD
+            app_rabbitmq_user="$(awk -F= '/^RABBITMQ_USERNAME=/{print substr($0, index($0, "=") + 1)}' "$file" | tail -n 1)"
+            app_rabbitmq_pass="$(awk -F= '/^RABBITMQ_PASSWORD=/{print substr($0, index($0, "=") + 1)}' "$file" | tail -n 1)"
+            if [ "$app_rabbitmq_user" != "$rabbitmq_user" ] || [ "$app_rabbitmq_pass" != "$rabbitmq_pass" ]; then
+              echo "[ERROR] RabbitMQ application credentials in ${file} must match rabbitmq.env"
+              exit 1
+            fi
+          done
+
+          validate_env_key /opt/cobox/env/grafana.env GF_SECURITY_ADMIN_PASSWORD
+          grafana_password="$(awk -F= '/^GF_SECURITY_ADMIN_PASSWORD=/{print substr($0, index($0, "=") + 1)}' /opt/cobox/env/grafana.env | tail -n 1)"
+          if [ "$grafana_password" = "admin" ]; then
+            echo "[ERROR] Grafana admin password must not be the default value"
+            exit 1
+          fi
+
           sudo systemctl is-active --quiet docker || sudo systemctl start docker
-          
+
           if docker compose version >/dev/null 2>&1; then
             DC="docker compose"
           elif command -v docker-compose >/dev/null 2>&1; then
@@ -130,23 +207,23 @@ jobs:
           else
             echo "[ERROR] docker compose no instalado"; exit 1
           fi
-          
+
           # Autenticación en ECR desde la instancia EC2
           aws ecr get-login-password --region "$AWS_REGION" \
             | docker login --username AWS --password-stdin "$ECR"
-          
+
           export COMPOSE_PROJECT_NAME=cobox
           export COMPOSE_HTTP_TIMEOUT=600
-          
+
           echo "=== IMAGES (resolved) ==="
-          $DC -f docker-compose.aws.yml config | sed -n 's/^[[:space:]]*image:[[:space:]]*//p' || true
-          
+          $DC -f docker-compose.aws.yml config | sed -n 's/^[[:space:]]*image:[[:space:]]*//p'
+
           # Descarga las nuevas imágenes y recrea los contenedores
-          $DC -f docker-compose.aws.yml pull || true
-          $DC -f docker-compose.aws.yml up -d || true
-          
+          $DC -f docker-compose.aws.yml pull
+          $DC -f docker-compose.aws.yml up -d
+
           echo "=== Esperando a que los servicios estén healthy ==="
-          for i in $(seq 1 12); do 
+          for i in $(seq 1 12); do
             BAD=$($DC -f docker-compose.aws.yml ps 2>/dev/null | awk '/unhealthy|Exit/ {print $1}')
             STARTING=$($DC -f docker-compose.aws.yml ps 2>/dev/null | awk '/starting/ {print $1}')
             echo "Intento $i: BAD=[$BAD] STARTING=[$STARTING]"
@@ -155,24 +232,29 @@ jobs:
               break
             fi
             sleep 10
-          done      
-          
+          done
+
           BAD=$($DC -f docker-compose.aws.yml ps 2>/dev/null | awk '/unhealthy|Exit/ {print $1}')
-          if [ -n "$BAD" ]; then
-            echo "=== Dumping logs for: $BAD ==="
-            for s in $BAD; do
+          STARTING=$($DC -f docker-compose.aws.yml ps 2>/dev/null | awk '/starting/ {print $1}')
+          if [ -n "$BAD" ] || [ -n "$STARTING" ]; then
+            echo "=== Dumping logs for: $BAD $STARTING ==="
+            for s in $BAD $STARTING; do
               echo "--- LOGS: $s (last 200) ---"
               docker logs --tail 200 "$s" || true
             done
             exit 1
           fi
-          
+
           echo "[OK] Deploy done"
           EOSSH
-            rc=$?
-            [ $rc -eq 0 ] && break
-            echo "[WARN] SSH attempt $n failed (rc=$rc); retrying in 5s..."
-            sleep 5
+            then
+              rc=0
+              break
+            else
+              rc=$?
+              echo "[WARN] SSH attempt $n failed (rc=$rc); retrying in 5s..."
+              sleep 5
+            fi
           done
-          
+
           [ $rc -eq 0 ] || { echo "[ERROR] SSH failed after retries"; exit 1; }

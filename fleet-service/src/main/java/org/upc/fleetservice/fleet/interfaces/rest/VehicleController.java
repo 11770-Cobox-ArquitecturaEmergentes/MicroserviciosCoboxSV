@@ -16,8 +16,10 @@ import org.upc.fleetservice.fleet.domain.model.queries.GetVehicleByIdQuery;
 import org.upc.fleetservice.fleet.domain.services.VehicleCommandService;
 import org.upc.fleetservice.fleet.domain.services.VehicleQueryService;
 import org.upc.fleetservice.fleet.interfaces.rest.resources.CreateVehicleResource;
+import org.upc.fleetservice.fleet.interfaces.rest.resources.UpdateVehicleStatusResource;
 import org.upc.fleetservice.fleet.interfaces.rest.resources.VehicleResource;
 import org.upc.fleetservice.fleet.interfaces.rest.transform.CreateVehicleCommandFromResourceAssembler;
+import org.upc.fleetservice.fleet.interfaces.rest.transform.UpdateVehicleStatusCommandFromResourceAssembler;
 import org.upc.fleetservice.fleet.interfaces.rest.transform.VehicleResourceFromEntityAssembler;
 
 import java.util.List;
@@ -95,5 +97,34 @@ public class VehicleController {
                 .map(VehicleResourceFromEntityAssembler::toResourceFromEntity)
                 .toList();
         return ResponseEntity.ok(vehicleResources);
+    }
+
+    @Operation(summary = "Update a vehicle's status",
+            description = "Updates the status of a vehicle. Allowed target statuses: OPERATIONAL, IN_MAINTENANCE, OUT_OF_SERVICE.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Vehicle status updated successfully",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = VehicleResource.class))),
+                    @ApiResponse(responseCode = "400", description = "Invalid input data provided",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+                    @ApiResponse(responseCode = "404", description = "Vehicle not found",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+                    @ApiResponse(responseCode = "409", description = "Invalid status transition for the current vehicle state",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            })
+    @RequestMapping(value = "/{vehicleId}", method = {RequestMethod.PUT, RequestMethod.PATCH})
+    public ResponseEntity<VehicleResource> updateVehicleStatus(@PathVariable Long vehicleId,
+                                                               @Valid @RequestBody UpdateVehicleStatusResource resource) {
+        var updateVehicleStatusCommand = UpdateVehicleStatusCommandFromResourceAssembler.toCommandFromResource(vehicleId, resource);
+        var updatedVehicleId = vehicleCommandService.handle(updateVehicleStatusCommand);
+        if (updatedVehicleId == 0L) {
+            return ResponseEntity.badRequest().build();
+        }
+        var vehicle = vehicleQueryService.handle(new GetVehicleByIdQuery(updatedVehicleId));
+        if (vehicle.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        var vehicleResource = VehicleResourceFromEntityAssembler.toResourceFromEntity(vehicle.get());
+        return ResponseEntity.ok(vehicleResource);
     }
 }

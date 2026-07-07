@@ -8,11 +8,17 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.upc.iamservice.iam.domain.model.queries.GetUserByAuth0SubjectQuery;
 import org.upc.iamservice.iam.domain.model.queries.GetAllUsersQuery;
 import org.upc.iamservice.iam.domain.model.queries.GetUserByIdQuery;
+import org.upc.iamservice.iam.domain.services.UserCommandService;
 import org.upc.iamservice.iam.domain.services.UserQueryService;
+import org.upc.iamservice.iam.interfaces.rest.resources.UpsertUserProfileResource;
 import org.upc.iamservice.iam.interfaces.rest.resources.UserResource;
+import org.upc.iamservice.iam.interfaces.rest.transform.UpsertUserProfileCommandFromResourceAssembler;
 import org.upc.iamservice.iam.interfaces.rest.transform.UserResourceFromEntityAssembler;
 
 import java.util.List;
@@ -22,10 +28,54 @@ import java.util.List;
 @Tag(name = "Users", description = "User Management Endpoints")
 public class UsersController {
 
+    private final UserCommandService userCommandService;
     private final UserQueryService userQueryService;
 
-    public UsersController(UserQueryService userQueryService) {
+    public UsersController(UserCommandService userCommandService, UserQueryService userQueryService) {
+        this.userCommandService = userCommandService;
         this.userQueryService = userQueryService;
+    }
+
+    @Operation(summary = "Create or update current user's internal profile",
+            description = "Creates or updates the internal IAM profile linked to the Auth0 subject from the access token.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Profile updated successfully",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = UserResource.class))),
+                    @ApiResponse(responseCode = "201", description = "Profile created successfully",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = UserResource.class)))
+            })
+    @PutMapping("/me")
+    public ResponseEntity<UserResource> upsertCurrentUserProfile(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody UpsertUserProfileResource resource
+    ) {
+        var existingUser = userQueryService.handle(new GetUserByAuth0SubjectQuery(jwt.getSubject()));
+        var command = UpsertUserProfileCommandFromResourceAssembler.toCommandFromResource(jwt.getSubject(), resource);
+        var user = userCommandService.handle(command);
+        if (user.isEmpty()) return ResponseEntity.badRequest().build();
+        var userResource = UserResourceFromEntityAssembler.toResourceFromEntity(user.get());
+        return existingUser.isPresent()
+                ? ResponseEntity.ok(userResource)
+                : ResponseEntity.status(201).body(userResource);
+    }
+
+    @Operation(summary = "Get current user's internal profile",
+            description = "Retrieves the internal IAM profile linked to the Auth0 subject from the access token.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Current profile retrieved successfully",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = UserResource.class))),
+                    @ApiResponse(responseCode = "404", description = "Profile not found",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            })
+    @GetMapping("/me")
+    public ResponseEntity<UserResource> getCurrentUserProfile(@AuthenticationPrincipal Jwt jwt) {
+        var user = userQueryService.handle(new GetUserByAuth0SubjectQuery(jwt.getSubject()));
+        if (user.isEmpty()) return ResponseEntity.notFound().build();
+        var userResource = UserResourceFromEntityAssembler.toResourceFromEntity(user.get());
+        return ResponseEntity.ok(userResource);
     }
 
     @Operation(summary = "Get all users",

@@ -6,8 +6,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: "http://iam-service:8081/api/v1/jwks/.well-known/jwks.json"
-
+          issuer-uri: "${AUTH0_ISSUER_URI:https://dev-e5ik5gbwpzkcqfrw.us.auth0.com/}"
   cloud:
     gateway:
       globalcors:
@@ -57,7 +56,7 @@ spring:
         - id: iam-service-route
           uri: lb://iam-service
           predicates:
-            - Path=/api/v1/authentication/**,/api/v1/roles/**,/api/v1/users/**,/api/v1/jwks/**
+            - Path=/api/v1/roles/**,/api/v1/users/**
           filters:
             - PreserveHostHeader
 
@@ -91,6 +90,108 @@ spring:
           filters:
             - PreserveHostHeader
 
+        - id: edge-service-docs
+          uri: lb://edge-service
+          predicates:
+            - Path=/edge-service/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+            - PreserveHostHeader
+
+        - id: edge-service-route
+          uri: lb://edge-service
+          predicates:
+            - Path=/api/v1/edge/**
+          filters:
+            - PreserveHostHeader
+
+        - id: mobile-bff-service-docs
+          uri: lb://mobile-bff-service
+          predicates:
+            - Path=/mobile-bff-service/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+            - PreserveHostHeader
+
+        - id: mobile-bff-service-route
+          uri: lb://mobile-bff-service
+          predicates:
+            - Path=/api/v1/mobile/**
+          filters:
+            - PreserveHostHeader
+
+        - id: desktop-bff-service-docs
+          uri: lb://desktop-bff-service
+          predicates:
+            - Path=/desktop-bff-service/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+            - PreserveHostHeader
+
+        - id: desktop-bff-service-route
+          uri: lb://desktop-bff-service
+          predicates:
+            - Path=/api/v1/desktop/**
+          filters:
+            - PreserveHostHeader
+
+        - id: ai-validation-service-docs
+          uri: lb://ai-validation-service
+          predicates:
+            - Path=/ai-validation-service/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+            - PreserveHostHeader
+
+        - id: ai-validation-service-route
+          uri: lb://ai-validation-service
+          predicates:
+            - Path=/api/v1/ai-validation/**
+          filters:
+            - PreserveHostHeader
+
+        - id: incident-service-docs
+          uri: lb://incident-service
+          predicates:
+            - Path=/incident-service/v3/api-docs/**
+            
+        - id: support-service-docs
+          uri: lb://support-service
+          predicates:
+            - Path=/support-service/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+            - PreserveHostHeader
+
+        - id: incident-service-route
+          uri: lb://incident-service
+          predicates:
+            - Path=/api/v1/incidents/**
+          filters:
+            - PreserveHostHeader
+
+        - id: maintenance-service-docs
+          uri: lb://maintenance-service
+          predicates:
+            - Path=/maintenance-service/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+            - PreserveHostHeader
+
+        - id: maintenance-service-route
+          uri: lb://maintenance-service
+          predicates:
+            - Path=/api/v1/maintenance-schedules/**,/api/v1/maintenance-orders/**
+        - id: support-service-route
+          uri: lb://support-service
+          predicates:
+            - Path=/api/v1/tickets/**
+          filters:
+            - PreserveHostHeader
+
+auth0:
+  audience: "${AUTH0_AUDIENCE:https://api.coboxsv.dev}"
+
 springdoc:
   swagger-ui:
     enabled: true
@@ -101,8 +202,22 @@ springdoc:
         url: /iam-service/v3/api-docs
       - name: delivery-service
         url: /delivery-service/v3/api-docs
+      - name: edge-service
+        url: /edge-service/v3/api-docs
+      - name: mobile-bff-service
+        url: /mobile-bff-service/v3/api-docs
+      - name: desktop-bff-service
+        url: /desktop-bff-service/v3/api-docs
+      - name: ai-validation-service
+        url: /ai-validation-service/v3/api-docs
       - name: fleet-service
         url: /fleet-service/v3/api-docs
+      - name: incident-service
+        url: /incident-service/v3/api-docs
+      - name: maintenance-service
+        url: /maintenance-service/v3/api-docs
+      - name: support-service
+        url: /support-service/v3/api-docs
 
 # ==========================================
 # Rate Limiting Configuration
@@ -117,8 +232,8 @@ gateway:
       window-seconds: 10
 
     endpoints:
-      # Authentication Endpoints
-      "[/api/v1/authentication/**]":
+      # IAM Endpoints
+      "[/api/v1/users/**]":
         max-requests: 20
         window-seconds: 60
 
@@ -136,8 +251,47 @@ gateway:
         max-requests: 50
         window-seconds: 10
 
+      # Edge Sync Endpoints
+      "[/api/v1/edge/**]":
+        max-requests: 30
+        window-seconds: 10
+
+      # Mobile BFF Endpoints
+      "[/api/v1/mobile/**]":
+        max-requests: 30
+        window-seconds: 10
+
+      # Desktop BFF Endpoints
+      "[/api/v1/desktop/**]":
+        max-requests: 50
+        window-seconds: 10
+
+      # AI Validation Endpoints
+      "[/api/v1/ai-validation/**]":
+        max-requests: 50
+        window-seconds: 10
+
+      # Incident Endpoints
+      "[/api/v1/incidents/**]":
+        max-requests: 50
+        window-seconds: 10
+
+      # Maintenance Endpoints
+      "[/api/v1/maintenance-schedules/**]":
+        max-requests: 50
+        window-seconds: 10
+
+      "[/api/v1/maintenance-orders/**]":
+        max-requests: 50
+        window-seconds: 10
+
       # Client Endpoints
       "[/api/v1/client/**]":
+        max-requests: 50
+        window-seconds: 10
+
+      # Ticket Endpoints
+      "[/api/v1/tickets/**]":
         max-requests: 50
         window-seconds: 10
 

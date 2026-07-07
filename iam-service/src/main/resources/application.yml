@@ -3,4 +3,11 @@ spring:
     name: iam-service
   config:
     import: "optional:configserver:http://config-service:8888"
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: "${AUTH0_ISSUER_URI:https://dev-e5ik5gbwpzkcqfrw.us.auth0.com/}"
 
+auth0:
+  audience: "${AUTH0_AUDIENCE:https://api.coboxsv.dev}"

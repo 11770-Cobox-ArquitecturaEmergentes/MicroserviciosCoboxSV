@@ -9,6 +9,8 @@ services:
       POSTGRES_PASSWORD: secret
     ports:
       - "5432:5432"
+    volumes:
+      - data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U admin_postgres -d postgres_db"]
       interval: 10s
@@ -24,7 +26,7 @@ services:
       - SPRING_PROFILES_ACTIVE=native
     ports: [ "8888:8888" ]
     healthcheck:
-      test: [ "CMD","curl","-f","http://localhost:8888/actuator/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8888/actuator/health" ]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -39,7 +41,7 @@ services:
         condition: service_healthy
     ports: [ "8761:8761" ]
     healthcheck:
-      test: [ "CMD","curl","-f","http://localhost:8761/actuator/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -61,7 +63,7 @@ services:
       - POSTGRES_USER=admin_postgres
       - POSTGRES_PASSWORD=secret
     healthcheck:
-      test: [ "CMD","curl","-f","http://localhost:8081/actuator/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8081/actuator/health" ]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -83,7 +85,7 @@ services:
       - POSTGRES_USER=admin_postgres
       - POSTGRES_PASSWORD=secret
     healthcheck:
-      test: [ "CMD","curl","-f","http://localhost:8082/actuator/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8082/actuator/health" ]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -105,13 +107,232 @@ services:
       - POSTGRES_USER=admin_postgres
       - POSTGRES_PASSWORD=secret
     healthcheck:
-      test: [ "CMD","curl","-f","http://localhost:8083/actuator/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8083/actuator/health" ]
       interval: 10s
       timeout: 3s
       retries: 10
     restart: unless-stopped
 
-  # 7. GATEWAY SERVICE (Escalable)
+  # 7. SUPPORT SERVICE
+  support-service:
+    build: ./support-service
+    container_name: support-service
+    depends_on:
+      iam-service:
+        condition: service_healthy
+      postgres-db:
+        condition: service_healthy
+    environment:
+      - POSTGRES_HOST=postgres-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=postgres_db
+      - POSTGRES_USER=admin_postgres
+      - POSTGRES_PASSWORD=secret
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8084/actuator/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # 8. EDGE SERVICE
+  edge-service:
+    build: ./edge-service
+    container_name: edge-service
+    depends_on:
+      iam-service:
+        condition: service_healthy
+      postgres-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - SERVER_PORT=8087
+      - POSTGRES_HOST=postgres-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=postgres_db
+      - POSTGRES_USER=admin_postgres
+      - POSTGRES_PASSWORD=secret
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/postgres_db
+      - SPRING_DATASOURCE_USERNAME=admin_postgres
+      - SPRING_DATASOURCE_PASSWORD=secret
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8087/actuator/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # 9. MOBILE BFF SERVICE
+  mobile-bff-service:
+    build: ./mobile-bff-service
+    container_name: mobile-bff-service
+    depends_on:
+      iam-service:
+        condition: service_healthy
+      postgres-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - SERVER_PORT=8088
+      - POSTGRES_HOST=postgres-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=postgres_db
+      - POSTGRES_USER=admin_postgres
+      - POSTGRES_PASSWORD=secret
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/postgres_db
+      - SPRING_DATASOURCE_USERNAME=admin_postgres
+      - SPRING_DATASOURCE_PASSWORD=secret
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - S3_EVIDENCE_BUCKET=${S3_EVIDENCE_BUCKET:-coboxsv-evidence-prod}
+      - S3_PRESIGNED_URL_EXPIRATION_MINUTES=${S3_PRESIGNED_URL_EXPIRATION_MINUTES:-15}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=guest
+      - RABBITMQ_PASSWORD=guest
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8088/actuator/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # 10. DESKTOP BFF SERVICE
+  desktop-bff-service:
+    build: ./desktop-bff-service
+    container_name: desktop-bff-service
+    depends_on:
+      iam-service:
+        condition: service_healthy
+      fleet-service:
+        condition: service_healthy
+      delivery-service:
+        condition: service_healthy
+      incident-service:
+        condition: service_healthy
+      maintenance-service:
+        condition: service_healthy
+    environment:
+      - SERVER_PORT=8089
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8089/actuator/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # 11. AI VALIDATION SERVICE
+  ai-validation-service:
+    build: ./ai-validation-service
+    container_name: ai-validation-service
+    depends_on:
+      iam-service:
+        condition: service_healthy
+      edge-service:
+        condition: service_healthy
+      postgres-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - SERVER_PORT=8090
+      - POSTGRES_HOST=postgres-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=postgres_db
+      - POSTGRES_USER=admin_postgres
+      - POSTGRES_PASSWORD=secret
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/postgres_db
+      - SPRING_DATASOURCE_USERNAME=admin_postgres
+      - SPRING_DATASOURCE_PASSWORD=secret
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=guest
+      - RABBITMQ_PASSWORD=guest
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - S3_EVIDENCE_BUCKET=${S3_EVIDENCE_BUCKET:-coboxsv-evidence-prod}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8090/actuator/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # 12. INCIDENT SERVICE
+  incident-service:
+    build: ./incident-service
+    container_name: incident-service
+    depends_on:
+      iam-service:
+        condition: service_healthy
+      postgres-db:
+        condition: service_healthy
+    environment:
+      - SERVER_PORT=8085
+      - POSTGRES_HOST=postgres-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=postgres_db
+      - POSTGRES_USER=admin_postgres
+      - POSTGRES_PASSWORD=secret
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/postgres_db
+      - SPRING_DATASOURCE_USERNAME=admin_postgres
+      - SPRING_DATASOURCE_PASSWORD=secret
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8085/actuator/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # 13. MAINTENANCE SERVICE
+  maintenance-service:
+    build: ./maintenance-service
+    container_name: maintenance-service
+    depends_on:
+      iam-service:
+        condition: service_healthy
+      postgres-db:
+        condition: service_healthy
+    environment:
+      - SERVER_PORT=8086
+      - POSTGRES_HOST=postgres-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=postgres_db
+      - POSTGRES_USER=admin_postgres
+      - POSTGRES_PASSWORD=secret
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/postgres_db
+      - SPRING_DATASOURCE_USERNAME=admin_postgres
+      - SPRING_DATASOURCE_PASSWORD=secret
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8086/actuator/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # 14. GATEWAY SERVICE (Escalable)
   gateway-service:
     build: ./gateway-service
     depends_on:
@@ -123,14 +344,28 @@ services:
         condition: service_healthy
       delivery-service:
         condition: service_healthy
+      edge-service:
+        condition: service_healthy
+      mobile-bff-service:
+        condition: service_healthy
+      desktop-bff-service:
+        condition: service_healthy
+      ai-validation-service:
+        condition: service_healthy
+      support-service:
+        condition: service_healthy
+      incident-service:
+        condition: service_healthy
+      maintenance-service:
+        condition: service_healthy
     healthcheck:
-      test: [ "CMD","curl","-f","http://localhost:8080/actuator/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
       interval: 10s
       timeout: 3s
       retries: 10
     restart: unless-stopped
 
-  # 8. NGINX REVERSE PROXY / LOAD BALANCER (MODIFICADO para SSL)
+  # 15. NGINX REVERSE PROXY / LOAD BALANCER
   nginx:
     image: nginx:latest
     container_name: nginx
@@ -143,7 +378,7 @@ services:
       - ./nginx.local.conf:/etc/nginx/nginx.conf:ro
     restart: unless-stopped
 
-  # 9. CERTBOT (NUEVO - Para obtener certificados)
+  # 16. CERTBOT
   certbot:
     image: certbot/certbot
     profiles: [ "ssl" ]
@@ -152,7 +387,7 @@ services:
       - ./data/certbot/www:/var/www/certbot
     command: certonly --webroot --webroot-path=/var/www/certbot --email davidalexd1234@gmail.com --agree-tos --no-eff-email --staging -d cobox.duckdns.org
 
-  # 10. PROMETHEUS
+  # 17. PROMETHEUS
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -165,7 +400,7 @@ services:
     networks:
       - default
 
-  # 11. GRAFANA
+  # 18. GRAFANA
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -183,4 +418,5 @@ networks:
     name: microservices_network
 
 volumes:
-  data: # Para la persistencia de los certificados
+  data:
+  rabbitmq_data:

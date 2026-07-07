@@ -2,15 +2,13 @@ server:
   port: 8081
   forward-headers-strategy: framework
 
-authorization:
-  jwt:
-    # Ruta a las claves que están en 'src/main/resources' del iam-service
-    private-key-path: "classpath:jwt.key"
-    public-key-path: "classpath:jwt.key.pub"
-    expiration:
-      days: 7
-
 spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: "${AUTH0_ISSUER_URI:https://dev-e5ik5gbwpzkcqfrw.us.auth0.com/}"
+
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}
     username: ${POSTGRES_USER:postgres}
@@ -22,6 +20,9 @@ spring:
       naming:
         physical-strategy: org.upc.iamservice.shared.infrastructure.persistence.jpa.configuration.strategy.SnakeCaseWithPluralizedTablePhysicalNamingStrategy
     show-sql: true
+
+auth0:
+  audience: "${AUTH0_AUDIENCE:https://api.coboxsv.dev}"
 
 springdoc:
   api-docs:

@@ -1,0 +1,27 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+  config:
+    import: optional:
+  datasource:
+    url: jdbc:h2:mem:edge_service_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://issuer.example.com/
+
+eureka:
+  client:
+    enabled: false
+
+auth0:
+  audience: https://api.coboxsv.dev
