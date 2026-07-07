@@ -50,7 +50,7 @@ function Assert-CommandAvailable {
 function Assert-Java21 {
     Assert-CommandAvailable -CommandName "java" -FriendlyName "Java 21"
 
-    $javaVersionOutput = & java -version 2>&1
+    $javaVersionOutput = cmd.exe /c "java -version 2>&1"
     $versionLine = ($javaVersionOutput | Select-String -Pattern 'version' | Select-Object -First 1).Line
 
     if (-not $versionLine -or $versionLine -notmatch 'version "([0-9]+)') {
