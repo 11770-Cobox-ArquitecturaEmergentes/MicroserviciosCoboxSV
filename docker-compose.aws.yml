@@ -1,17 +1,32 @@
+x-java-common: &java-common
+  SPRING_CLOUD_CONFIG_RETRY_ENABLED: "true"
+  SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS: "40"
+  SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: "1000"
+  SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER: "1.5"
+
+x-health-default: &health-default
+  interval: 15s
+  timeout: 10s
+  retries: 30
+  start_period: 120s
+
 services:
   config-service:
     image: "${ECR}/config-service:${TAG:-latest}"
     container_name: config-service
     environment:
-      - SPRING_PROFILES_ACTIVE=native
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
-    mem_limit: 192m
+      SPRING_PROFILES_ACTIVE: native
+      EUREKA_CLIENT_ENABLED: "false"
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx320m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
+    mem_limit: 512m
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8888/actuator/health" ]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8888/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 15s
       timeout: 10s
-      retries: 20
-      start_period: 90s
+      retries: 30
+      start_period: 120s
     restart: unless-stopped
 
   eureka-service:
@@ -21,16 +36,19 @@ services:
       config-service:
         condition: service_healthy
     environment:
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
+      <<: *java-common
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx320m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
     ports:
       - "127.0.0.1:8761:8761"
-    mem_limit: 192m
+    mem_limit: 512m
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8761/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 15s
       timeout: 10s
-      retries: 20
-      start_period: 120s
+      retries: 30
+      start_period: 180s
     restart: unless-stopped
 
   rabbitmq:
@@ -42,12 +60,13 @@ services:
       - "127.0.0.1:15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-    mem_limit: 256m
+    mem_limit: 512m
     healthcheck:
-      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
     restart: unless-stopped
 
   iam-service:
@@ -58,17 +77,12 @@ services:
     env_file:
       - /opt/cobox/env/iam.env
     environment:
-      - SPRING_CLOUD_CONFIG_RETRY_ENABLED=true
-      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=40
-      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
-      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
-    mem_limit: 224m
+      <<: *java-common
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx384m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
+    mem_limit: 640m
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8081/actuator/health" ]
-      interval: 10s
-      timeout: 3s
-      retries: 25
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"'"]
+      <<: *health-default
     restart: unless-stopped
 
   fleet-service:
@@ -79,17 +93,12 @@ services:
     env_file:
       - /opt/cobox/env/fleet.env
     environment:
-      - SPRING_CLOUD_CONFIG_RETRY_ENABLED=true
-      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=40
-      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
-      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
-    mem_limit: 224m
+      <<: *java-common
+      JAVA_TOOL_OPTIONS: "-Xms96m -Xmx256m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
+    mem_limit: 448m
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8082/actuator/health" ]
-      interval: 10s
-      timeout: 3s
-      retries: 25
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8082/actuator/health | grep -q '\"status\":\"UP\"'"]
+      <<: *health-default
     restart: unless-stopped
 
   delivery-service:
@@ -100,17 +109,12 @@ services:
     env_file:
       - /opt/cobox/env/delivery.env
     environment:
-      - SPRING_CLOUD_CONFIG_RETRY_ENABLED=true
-      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=40
-      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
-      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
-    mem_limit: 224m
+      <<: *java-common
+      JAVA_TOOL_OPTIONS: "-Xms96m -Xmx256m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
+    mem_limit: 448m
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8083/actuator/health" ]
-      interval: 10s
-      timeout: 3s
-      retries: 25
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8083/actuator/health | grep -q '\"status\":\"UP\"'"]
+      <<: *health-default
     restart: unless-stopped
 
   support-service:
@@ -121,17 +125,44 @@ services:
     env_file:
       - /opt/cobox/env/support.env
     environment:
-      - SPRING_CLOUD_CONFIG_RETRY_ENABLED=true
-      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=40
-      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
-      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
-    mem_limit: 224m
+      <<: *java-common
+      JAVA_TOOL_OPTIONS: "-Xms96m -Xmx256m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
+    mem_limit: 448m
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8084/actuator/health" ]
-      interval: 10s
-      timeout: 3s
-      retries: 25
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8084/actuator/health | grep -q '\"status\":\"UP\"'"]
+      <<: *health-default
+    restart: unless-stopped
+
+  incident-service:
+    image: "${ECR}/incident-service:${TAG:-latest}"
+    depends_on:
+      iam-service:
+        condition: service_healthy
+    env_file:
+      - /opt/cobox/env/incident.env
+    environment:
+      <<: *java-common
+      JAVA_TOOL_OPTIONS: "-Xms96m -Xmx256m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
+    mem_limit: 448m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8085/actuator/health | grep -q '\"status\":\"UP\"'"]
+      <<: *health-default
+    restart: unless-stopped
+
+  maintenance-service:
+    image: "${ECR}/maintenance-service:${TAG:-latest}"
+    depends_on:
+      iam-service:
+        condition: service_healthy
+    env_file:
+      - /opt/cobox/env/maintenance.env
+    environment:
+      <<: *java-common
+      JAVA_TOOL_OPTIONS: "-Xms96m -Xmx256m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
+    mem_limit: 448m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8086/actuator/health | grep -q '\"status\":\"UP\"'"]
+      <<: *health-default
     restart: unless-stopped
 
   edge-service:
@@ -142,17 +173,12 @@ services:
     env_file:
       - /opt/cobox/env/edge.env
     environment:
-      - SPRING_CLOUD_CONFIG_RETRY_ENABLED=true
-      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=40
-      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
-      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
-    mem_limit: 224m
+      <<: *java-common
+      JAVA_TOOL_OPTIONS: "-Xms96m -Xmx256m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
+    mem_limit: 448m
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8087/actuator/health" ]
-      interval: 10s
-      timeout: 3s
-      retries: 25
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8087/actuator/health | grep -q '\"status\":\"UP\"'"]
+      <<: *health-default
     restart: unless-stopped
 
   mobile-bff-service:
@@ -165,19 +191,14 @@ services:
     env_file:
       - /opt/cobox/env/mobile-bff.env
     environment:
-      - SPRING_CLOUD_CONFIG_RETRY_ENABLED=true
-      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=40
-      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
-      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
-    mem_limit: 384m
+      <<: *java-common
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx384m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
+    mem_limit: 640m
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8088/actuator/health" ]
-      interval: 10s
-      timeout: 3s
-      retries: 25
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8088/actuator/health | grep -q '\"status\":\"UP\"'"]
+      <<: *health-default
     restart: unless-stopped
 
   desktop-bff-service:
@@ -193,18 +214,15 @@ services:
         condition: service_healthy
       maintenance-service:
         condition: service_healthy
+    env_file:
+      - /opt/cobox/env/desktop-bff.env
     environment:
-      - SPRING_CLOUD_CONFIG_RETRY_ENABLED=true
-      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=40
-      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
-      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
-    mem_limit: 384m
+      <<: *java-common
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx384m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
+    mem_limit: 640m
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8089/actuator/health" ]
-      interval: 10s
-      timeout: 3s
-      retries: 25
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8089/actuator/health | grep -q '\"status\":\"UP\"'"]
+      <<: *health-default
     restart: unless-stopped
 
   ai-validation-service:
@@ -219,61 +237,17 @@ services:
     env_file:
       - /opt/cobox/env/ai-validation.env
     environment:
-      - SPRING_CLOUD_CONFIG_RETRY_ENABLED=true
-      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=40
-      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
-      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
-    mem_limit: 448m
+      <<: *java-common
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx512m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
+    mem_limit: 768m
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8090/actuator/health" ]
-      interval: 10s
-      timeout: 3s
-      retries: 25
-    restart: unless-stopped
-
-  incident-service:
-    image: "${ECR}/incident-service:${TAG:-latest}"
-    depends_on:
-      iam-service:
-        condition: service_healthy
-    env_file:
-      - /opt/cobox/env/incident.env
-    environment:
-      - SPRING_CLOUD_CONFIG_RETRY_ENABLED=true
-      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=40
-      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
-      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
-    mem_limit: 224m
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8085/actuator/health" ]
-      interval: 10s
-      timeout: 3s
-      retries: 25
-    restart: unless-stopped
-
-  maintenance-service:
-    image: "${ECR}/maintenance-service:${TAG:-latest}"
-    depends_on:
-      iam-service:
-        condition: service_healthy
-    env_file:
-      - /opt/cobox/env/maintenance.env
-    environment:
-      - SPRING_CLOUD_CONFIG_RETRY_ENABLED=true
-      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=40
-      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=1000
-      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
-    mem_limit: 224m
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8086/actuator/health" ]
-      interval: 10s
-      timeout: 3s
-      retries: 25
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8090/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 30
+      start_period: 180s
     restart: unless-stopped
 
   gateway-service:
@@ -302,13 +276,15 @@ services:
       maintenance-service:
         condition: service_healthy
     environment:
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=25.0 -XX:+ExitOnOutOfMemoryError
-    mem_limit: 384m
+      <<: *java-common
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx384m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
+    mem_limit: 640m
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
-      interval: 10s
-      timeout: 3s
-      retries: 25
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 30
+      start_period: 180s
     restart: unless-stopped
 
   nginx:
@@ -324,7 +300,7 @@ services:
       - /opt/cobox/nginx.conf:/etc/nginx/nginx.conf:ro
       - /opt/cobox/data/certbot/conf:/etc/nginx/ssl:ro
       - /opt/cobox/data/certbot/www:/var/www/certbot:ro
-    mem_limit: 64m
+    mem_limit: 128m
     restart: unless-stopped
 
   certbot:
@@ -342,8 +318,9 @@ services:
     ports:
       - "127.0.0.1:9090:9090"
     depends_on:
-      - gateway-service
-    mem_limit: 128m
+      gateway-service:
+        condition: service_started
+    mem_limit: 256m
     networks:
       - default
     restart: unless-stopped
@@ -356,8 +333,9 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
-      - prometheus
-    mem_limit: 192m
+      prometheus:
+        condition: service_started
+    mem_limit: 384m
     networks:
       - default
     restart: unless-stopped
