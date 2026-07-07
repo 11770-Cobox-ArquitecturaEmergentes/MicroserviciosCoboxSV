@@ -29,5 +29,5 @@ auth0:
 storage:
   s3:
     bucket: cobox-evidence-test
-    region: us-east-1
+    region: us-east-2
     presigned-url-expiration-minutes: 15

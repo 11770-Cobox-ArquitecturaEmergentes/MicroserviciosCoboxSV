@@ -205,7 +205,7 @@ services:
       - AWS_REGION=${AWS_REGION:-us-east-1}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
-      - S3_EVIDENCE_BUCKET=${S3_EVIDENCE_BUCKET:-cobox-evidence-dev}
+      - S3_EVIDENCE_BUCKET=${S3_EVIDENCE_BUCKET:-coboxsv-evidence-prod}
       - S3_PRESIGNED_URL_EXPIRATION_MINUTES=${S3_PRESIGNED_URL_EXPIRATION_MINUTES:-15}
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
@@ -272,7 +272,7 @@ services:
       - AWS_REGION=${AWS_REGION:-us-east-1}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
-      - S3_EVIDENCE_BUCKET=${S3_EVIDENCE_BUCKET:-cobox-evidence-dev}
+      - S3_EVIDENCE_BUCKET=${S3_EVIDENCE_BUCKET:-coboxsv-evidence-prod}
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8090/actuator/health" ]
       interval: 10s

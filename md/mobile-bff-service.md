@@ -52,7 +52,7 @@ Variables esperadas para S3:
 $env:AWS_REGION = "us-east-1"
 $env:AWS_ACCESS_KEY_ID = "..."
 $env:AWS_SECRET_ACCESS_KEY = "..."
-$env:S3_EVIDENCE_BUCKET = "cobox-evidence-dev"
+$env:S3_EVIDENCE_BUCKET = "coboxsv-evidence-prod"
 $env:S3_PRESIGNED_URL_EXPIRATION_MINUTES = "15"
 ```
 

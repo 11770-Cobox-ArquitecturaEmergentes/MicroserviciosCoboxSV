@@ -31,8 +31,8 @@ auth0:
 
 storage:
   s3:
-    bucket: "${S3_EVIDENCE_BUCKET:cobox-evidence-dev}"
-    region: "${AWS_REGION:us-east-1}"
+    bucket: "${S3_EVIDENCE_BUCKET:coboxsv-evidence-prod}"
+    region: "${AWS_REGION:us-east-2}"
     presigned-url-expiration-minutes: "${S3_PRESIGNED_URL_EXPIRATION_MINUTES:15}"
 
 cobox:

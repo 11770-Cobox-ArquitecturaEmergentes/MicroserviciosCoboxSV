@@ -8,7 +8,7 @@ public record StorageProperties(
         String region
 ) {
     public StorageProperties {
-        bucket = bucket == null ? "cobox-evidence-dev" : bucket;
+        bucket = bucket == null ? "coboxsv-evidence-prod" : bucket;
         region = region == null ? "us-east-1" : region;
     }
 }
