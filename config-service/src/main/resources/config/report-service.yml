@@ -1,5 +1,5 @@
 server:
-  port: 8085
+  port: ${SERVER_PORT:8091}
   forward-headers-strategy: framework
 
 spring:
@@ -8,7 +8,6 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: "${AUTH0_ISSUER_URI:https://dev-e5ik5gbwpzkcqfrw.us.auth0.com/}"
-
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}
     username: ${POSTGRES_USER:postgres}
@@ -16,11 +15,10 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: update # 'validate' o 'none' en producción
       naming:
-        physical-strategy: org.upc.incidentservice.shared.infrastructure.persistence.jpa.configuration.strategy.SnakeCaseWithPluralizedTablePhysicalNamingStrategy
+        physical-strategy: org.upc.reportservice.shared.infrastructure.persistence.jpa.configuration.strategy.SnakeCaseWithPluralizedTablePhysicalNamingStrategy
     show-sql: true
-
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
