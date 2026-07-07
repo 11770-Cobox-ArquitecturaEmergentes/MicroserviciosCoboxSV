@@ -107,7 +107,7 @@ jobs:
           SSH_OPTS="-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o ConnectionAttempts=3"
           rc=1
 
-          for n in 1 2 3; do
+          for n in 1; do
             if ssh $SSH_OPTS -i key.pem "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
               AWS_REGION='${{ env.AWS_REGION }}' AWS_ACCOUNT_ID='${{ env.AWS_ACCOUNT_ID }}' bash -se <<'EOSSH'
           set -euo pipefail
@@ -133,6 +133,8 @@ jobs:
             /opt/cobox/env/ai-validation.env
             /opt/cobox/env/incident.env
             /opt/cobox/env/maintenance.env
+            /opt/cobox/env/rabbitmq.env
+            /opt/cobox/env/grafana.env
           )
 
           for file in "${required_files[@]}"; do
@@ -215,12 +217,28 @@ jobs:
           echo "=== IMAGES (resolved) ==="
           $DC -f docker-compose.aws.yml config | sed -n 's/^[[:space:]]*image:[[:space:]]*//p'
 
-          # Descarga las nuevas imágenes y recrea los contenedores
+          echo "=== Docker cleanup before deploy ==="
+          docker container prune -f || true
+          docker image prune -f || true
+          docker builder prune -f || true
+          df -h /
+          docker system df || true
+
+          echo "=== Pull images ==="
           $DC -f docker-compose.aws.yml pull
+
+          echo "=== Compose up ==="
+          set +e
           $DC -f docker-compose.aws.yml up -d
+          UP_RC=$?
+          set -e
+
+          if [ "$UP_RC" -ne 0 ]; then
+            echo "[WARN] docker compose up returned rc=$UP_RC. Continuing to health diagnostics..."
+          fi
 
           echo "=== Esperando a que los servicios estén healthy ==="
-          for i in $(seq 1 12); do
+          for i in $(seq 1 30); do
             BAD=$($DC -f docker-compose.aws.yml ps 2>/dev/null | awk '/unhealthy|Exit/ {print $1}')
             STARTING=$($DC -f docker-compose.aws.yml ps 2>/dev/null | awk '/starting/ {print $1}')
             echo "Intento $i: BAD=[$BAD] STARTING=[$STARTING]"
@@ -231,11 +249,21 @@ jobs:
             sleep 10
           done
 
+          echo "=== Compose status ==="
+          $DC -f docker-compose.aws.yml ps || true
+
           BAD=$($DC -f docker-compose.aws.yml ps 2>/dev/null | awk '/unhealthy|Exit/ {print $1}')
           STARTING=$($DC -f docker-compose.aws.yml ps 2>/dev/null | awk '/starting/ {print $1}')
+
           if [ -n "$BAD" ] || [ -n "$STARTING" ]; then
             echo "=== Dumping logs for: $BAD $STARTING ==="
             for s in $BAD $STARTING; do
+              echo "--- INSPECT: $s ---"
+              docker inspect "$s" --format 'Status={{.State.Status}} ExitCode={{.State.ExitCode}} OOMKilled={{.State.OOMKilled}} Restarting={{.State.Restarting}}' || true
+
+              echo "--- HEALTH: $s ---"
+              docker inspect "$s" --format '{{range .State.Health.Log}}{{println .ExitCode}}{{println .Output}}{{end}}' || true
+
               echo "--- LOGS: $s (last 200) ---"
               docker logs --tail 200 "$s" || true
             done
