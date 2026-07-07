@@ -129,13 +129,10 @@ jobs:
             /opt/cobox/env/delivery.env
             /opt/cobox/env/support.env
             /opt/cobox/env/edge.env
-            /opt/cobox/env/mobile-bff.env
-            /opt/cobox/env/desktop-bff.env
+            /opt/cobox/env/mobile-bff.env        
             /opt/cobox/env/ai-validation.env
             /opt/cobox/env/incident.env
             /opt/cobox/env/maintenance.env
-            /opt/cobox/env/rabbitmq.env
-            /opt/cobox/env/grafana.env
           )
 
           for file in "${required_files[@]}"; do
