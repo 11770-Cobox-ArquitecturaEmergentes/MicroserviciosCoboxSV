@@ -2,10 +2,12 @@ package org.upc.aivalidationservice.validation.application.internal.commandservi
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.upc.aivalidationservice.validation.application.internal.providers.AiVisionProvider;
 import org.upc.aivalidationservice.validation.application.internal.providers.AiVisionResult;
 import org.upc.aivalidationservice.validation.application.internal.rules.AiValidationRuleEvaluator;
 import org.upc.aivalidationservice.validation.infrastructure.clients.edge.EdgeClient;
+import org.upc.aivalidationservice.validation.infrastructure.clients.incident.IncidentClient;
 import org.upc.aivalidationservice.validation.infrastructure.persistence.jpa.repositories.AiAlertRepository;
 import org.upc.aivalidationservice.validation.infrastructure.persistence.jpa.repositories.EvidenceAnalysisRepository;
 import org.upc.aivalidationservice.validation.infrastructure.storage.StorageProperties;
@@ -30,14 +32,18 @@ class AiValidationCommandServiceImplTests {
         var alertRepository = mock(AiAlertRepository.class);
         var provider = mock(AiVisionProvider.class);
         var edgeClient = mock(EdgeClient.class);
+        var incidentClient = mock(IncidentClient.class);
+        var rabbitTemplate = mock(RabbitTemplate.class);
         var service = new AiValidationCommandServiceImpl(
                 analysisRepository,
                 alertRepository,
                 provider,
                 new AiValidationRuleEvaluator(),
                 edgeClient,
+                incidentClient,
                 new StorageProperties("bucket", "us-east-1"),
-                new ObjectMapper()
+                new ObjectMapper(),
+                rabbitTemplate
         );
         var existing = new org.upc.aivalidationservice.validation.domain.model.aggregates.EvidenceAnalysis(
                 event.clientEvidenceId(),
@@ -72,14 +78,18 @@ class AiValidationCommandServiceImplTests {
         var alertRepository = mock(AiAlertRepository.class);
         var provider = mock(AiVisionProvider.class);
         var edgeClient = mock(EdgeClient.class);
+        var incidentClient = mock(IncidentClient.class);
+        var rabbitTemplate = mock(RabbitTemplate.class);
         var service = new AiValidationCommandServiceImpl(
                 analysisRepository,
                 alertRepository,
                 provider,
                 new AiValidationRuleEvaluator(),
                 edgeClient,
+                incidentClient,
                 new StorageProperties("bucket", "us-east-1"),
-                new ObjectMapper()
+                new ObjectMapper(),
+                rabbitTemplate
         );
 
         when(analysisRepository.findByClientEvidenceId(event.clientEvidenceId())).thenReturn(Optional.empty());
@@ -96,6 +106,7 @@ class AiValidationCommandServiceImplTests {
         ));
         when(alertRepository.findByClientEvidenceIdAndType(event.clientEvidenceId(), "TELEMETRY_MISSING"))
                 .thenReturn(Optional.empty());
+        when(alertRepository.findByClientEvidenceId(event.clientEvidenceId())).thenReturn(List.of());
 
         service.handleEvidenceUploadConfirmed(event);
 

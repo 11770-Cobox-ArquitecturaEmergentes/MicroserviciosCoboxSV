@@ -9,20 +9,24 @@ import org.upc.fleetservice.fleet.domain.model.commands.CreateVehicleCommand;
 import org.upc.fleetservice.fleet.domain.model.commands.UpdateVehicleStatusCommand;
 import org.upc.fleetservice.fleet.domain.model.commands.UpdateVehicleStatusOnCompletedRouteCommand;
 import org.upc.fleetservice.fleet.domain.services.VehicleCommandService;
+import org.upc.fleetservice.fleet.infrastructure.messaging.FleetReportEventPublisher;
 import org.upc.fleetservice.fleet.infrastructure.persistence.jpa.repositories.VehicleRepository;
 
 @Service
 public class VehicleCommandServiceImpl implements VehicleCommandService {
 
     private final VehicleRepository vehicleRepository;
-    public VehicleCommandServiceImpl(VehicleRepository vehicleRepository) {
+    private final FleetReportEventPublisher reportEventPublisher;
+    public VehicleCommandServiceImpl(VehicleRepository vehicleRepository, FleetReportEventPublisher reportEventPublisher) {
         this.vehicleRepository = vehicleRepository;
+        this.reportEventPublisher = reportEventPublisher;
     }
 
     @Override
     public Long handle(CreateVehicleCommand command) {
         var vehicle = new Vehicle(command);
         vehicleRepository.save(vehicle);
+        reportEventPublisher.publishVehicle("fleet.vehicle-created", vehicle);
         return vehicle.getId();
     }
     @Override
@@ -30,6 +34,7 @@ public class VehicleCommandServiceImpl implements VehicleCommandService {
         vehicleRepository.findById(command.vehicleId()).map(vehicle -> {
             vehicle.returnFromRoute();
             vehicleRepository.save(vehicle);
+            reportEventPublisher.publishVehicle("fleet.vehicle-status-updated", vehicle);
             return vehicle.getId();
         }).orElseThrow(() -> new VehicleNotFoundException(command.vehicleId()));
     }
@@ -38,6 +43,7 @@ public class VehicleCommandServiceImpl implements VehicleCommandService {
         return vehicleRepository.findById(command.vehicleId()).map(vehicle -> {
             vehicle.updateStatus(command.newStatus());
             vehicleRepository.save(vehicle);
+            reportEventPublisher.publishVehicle("fleet.vehicle-status-updated", vehicle);
             return vehicle.getId();
         }).orElseThrow(() -> new VehicleNotFoundException(command.vehicleId()));
     }

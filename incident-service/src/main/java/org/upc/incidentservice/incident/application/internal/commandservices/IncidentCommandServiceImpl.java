@@ -14,7 +14,7 @@ import org.upc.incidentservice.incident.domain.model.valueobjects.IncidentId;
 import org.upc.incidentservice.incident.domain.services.IncidentCommandService;
 import org.upc.incidentservice.incident.infrastructure.persistence.jpa.repositories.IncidentRepository;
 
-import java.util.UUID;
+import java.util.LinkedHashMap;
 
 @Service
 public class IncidentCommandServiceImpl implements IncidentCommandService {
@@ -33,13 +33,7 @@ public class IncidentCommandServiceImpl implements IncidentCommandService {
     public Long handle(CreateIncidentCommand command) {
         var incident = new Incident(command);
         incidentRepository.save(incident);
-        
-        try {
-            String message = objectMapper.writeValueAsString(incident);
-            rabbitTemplate.convertAndSend("report.exchange", "incident.created", message);
-        } catch (JsonProcessingException e) {
-            // Log error
-        }
+        publishIncidentEvent("incident.created", incident);
         
         return incident.getId();
     }
@@ -51,6 +45,7 @@ public class IncidentCommandServiceImpl implements IncidentCommandService {
                 .map(incident -> {
                     incident.updateStatus(command);
                     incidentRepository.save(incident);
+                    publishIncidentEvent("incident.status-updated", incident);
                     return incident.getId();
                 })
                 .orElseThrow(() -> new IncidentNotFoundException(command.incidentId()));
@@ -63,8 +58,30 @@ public class IncidentCommandServiceImpl implements IncidentCommandService {
                 .map(incident -> {
                     incident.assignResponsible(command);
                     incidentRepository.save(incident);
+                    publishIncidentEvent("incident.assigned", incident);
                     return incident.getId();
                 })
                 .orElseThrow(() -> new IncidentNotFoundException(command.incidentId()));
+    }
+
+    private void publishIncidentEvent(String routingKey, Incident incident) {
+        try {
+            var payload = new LinkedHashMap<String, Object>();
+            payload.put("id", incident.getIncidentId() != null ? incident.getIncidentId().incidentId() : null);
+            payload.put("technicalId", incident.getId());
+            payload.put("type", incident.getType());
+            payload.put("description", incident.getDescription());
+            payload.put("severity", incident.getSeverity() != null ? incident.getSeverity().name() : null);
+            payload.put("status", incident.getStatus() != null ? incident.getStatus().name() : null);
+            payload.put("reportedAt", incident.getReportedAt());
+            payload.put("responsibleUserId", incident.getResponsibleUserId() != null ? incident.getResponsibleUserId().responsibleUserId() : null);
+            payload.put("sourceType", incident.getSourceType());
+            payload.put("sourceAlertId", incident.getSourceAlertId());
+            payload.put("sourceClientEvidenceId", incident.getSourceClientEvidenceId());
+            String message = objectMapper.writeValueAsString(payload);
+            rabbitTemplate.convertAndSend("report.exchange", routingKey, message);
+        } catch (JsonProcessingException | RuntimeException e) {
+            // Reporting must not block the transactional incident workflow.
+        }
     }
 }

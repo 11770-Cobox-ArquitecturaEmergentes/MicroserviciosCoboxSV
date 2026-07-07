@@ -16,4 +16,6 @@ public interface IncidentQueryService {
     List<Incident> handle(GetIncidentsByStatusQuery query);
 
     List<Incident> handle(GetIncidentsByResponsibleUserIdQuery query);
+
+    Optional<Incident> handle(GetIncidentBySourceAlertIdQuery query);
 }

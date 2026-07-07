@@ -96,10 +96,15 @@ services:
     depends_on:
       iam-service:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     env_file:
+      - /opt/cobox/env/rabbitmq.env
       - /opt/cobox/env/fleet.env
     environment:
       <<: *java-common
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
       JAVA_TOOL_OPTIONS: "-Xms96m -Xmx256m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
     mem_limit: 448m
     healthcheck:
@@ -112,10 +117,15 @@ services:
     depends_on:
       iam-service:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     env_file:
+      - /opt/cobox/env/rabbitmq.env
       - /opt/cobox/env/delivery.env
     environment:
       <<: *java-common
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
       JAVA_TOOL_OPTIONS: "-Xms96m -Xmx256m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
     mem_limit: 448m
     healthcheck:
@@ -144,10 +154,15 @@ services:
     depends_on:
       iam-service:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     env_file:
+      - /opt/cobox/env/rabbitmq.env
       - /opt/cobox/env/incident.env
     environment:
       <<: *java-common
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
       JAVA_TOOL_OPTIONS: "-Xms96m -Xmx256m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
     mem_limit: 448m
     healthcheck:
@@ -160,10 +175,15 @@ services:
     depends_on:
       iam-service:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     env_file:
+      - /opt/cobox/env/rabbitmq.env
       - /opt/cobox/env/maintenance.env
     environment:
       <<: *java-common
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
       JAVA_TOOL_OPTIONS: "-Xms96m -Xmx256m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
     mem_limit: 448m
     healthcheck:
@@ -195,6 +215,7 @@ services:
       rabbitmq:
         condition: service_healthy
     env_file:
+      - /opt/cobox/env/rabbitmq.env
       - /opt/cobox/env/mobile-bff.env
     environment:
       <<: *java-common
@@ -241,6 +262,7 @@ services:
       rabbitmq:
         condition: service_healthy
     env_file:
+      - /opt/cobox/env/rabbitmq.env
       - /opt/cobox/env/ai-validation.env
     environment:
       <<: *java-common
@@ -254,6 +276,27 @@ services:
       timeout: 10s
       retries: 30
       start_period: 180s
+    restart: unless-stopped
+
+  report-service:
+    image: "${ECR}/report-service:${TAG:-latest}"
+    depends_on:
+      iam-service:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    env_file:
+      - /opt/cobox/env/rabbitmq.env
+      - /opt/cobox/env/report.env
+    environment:
+      <<: *java-common
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      JAVA_TOOL_OPTIONS: "-Xms96m -Xmx256m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
+    mem_limit: 448m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8091/actuator/health | grep -q '\"status\":\"UP\"'"]
+      <<: *health-default
     restart: unless-stopped
 
   gateway-service:
@@ -276,6 +319,8 @@ services:
       desktop-bff-service:
         condition: service_healthy
       ai-validation-service:
+        condition: service_healthy
+      report-service:
         condition: service_healthy
       incident-service:
         condition: service_healthy

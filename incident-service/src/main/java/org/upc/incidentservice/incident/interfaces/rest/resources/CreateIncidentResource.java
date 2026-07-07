@@ -6,10 +6,15 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import org.upc.incidentservice.incident.domain.model.valueobjects.IncidentSeverity;
 
+import java.util.UUID;
+
 public record CreateIncidentResource(
         @NotBlank String type,
         @NotBlank @Size(max = 2000) String description,
         @NotNull IncidentSeverity severity,
-        @Positive Long responsibleUserId
+        @Positive Long responsibleUserId,
+        String sourceType,
+        UUID sourceAlertId,
+        UUID sourceClientEvidenceId
 ) {
 }

@@ -3,6 +3,7 @@ package org.upc.desktopbffservice;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.upc.desktopbffservice.desktop.infrastructure.clients.aivalidation.AiValidationClient;
 import org.upc.desktopbffservice.desktop.infrastructure.clients.delivery.DeliveryClient;
 import org.upc.desktopbffservice.desktop.infrastructure.clients.fleet.FleetClient;
 import org.upc.desktopbffservice.desktop.infrastructure.clients.incident.IncidentClient;
@@ -22,6 +23,9 @@ class DesktopBffServiceApplicationTests {
 
     @MockBean
     private MaintenanceClient maintenanceClient;
+
+    @MockBean
+    private AiValidationClient aiValidationClient;
 
     @Test
     void contextLoads() {

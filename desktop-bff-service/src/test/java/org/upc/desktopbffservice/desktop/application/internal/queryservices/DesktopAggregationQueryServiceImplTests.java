@@ -2,6 +2,7 @@ package org.upc.desktopbffservice.desktop.application.internal.queryservices;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.upc.desktopbffservice.desktop.infrastructure.clients.aivalidation.AiValidationClient;
 import org.upc.desktopbffservice.desktop.infrastructure.clients.delivery.DeliveryClient;
 import org.upc.desktopbffservice.desktop.infrastructure.clients.delivery.OrderClientResource;
 import org.upc.desktopbffservice.desktop.infrastructure.clients.fleet.*;
@@ -9,6 +10,7 @@ import org.upc.desktopbffservice.desktop.infrastructure.clients.incident.Inciden
 import org.upc.desktopbffservice.desktop.infrastructure.clients.incident.IncidentClientResource;
 import org.upc.desktopbffservice.desktop.infrastructure.clients.maintenance.MaintenanceClient;
 import org.upc.desktopbffservice.desktop.infrastructure.clients.maintenance.MaintenanceOrderClientResource;
+import org.upc.desktopbffservice.desktop.infrastructure.clients.maintenance.MaintenanceScheduleClientResource;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -25,6 +27,7 @@ class DesktopAggregationQueryServiceImplTests {
     private DeliveryClient deliveryClient;
     private IncidentClient incidentClient;
     private MaintenanceClient maintenanceClient;
+    private AiValidationClient aiValidationClient;
     private DesktopAggregationQueryServiceImpl service;
 
     @BeforeEach
@@ -33,7 +36,8 @@ class DesktopAggregationQueryServiceImplTests {
         deliveryClient = mock(DeliveryClient.class);
         incidentClient = mock(IncidentClient.class);
         maintenanceClient = mock(MaintenanceClient.class);
-        service = new DesktopAggregationQueryServiceImpl(fleetClient, deliveryClient, incidentClient, maintenanceClient);
+        aiValidationClient = mock(AiValidationClient.class);
+        service = new DesktopAggregationQueryServiceImpl(fleetClient, deliveryClient, incidentClient, maintenanceClient, aiValidationClient);
     }
 
     @Test
@@ -90,17 +94,21 @@ class DesktopAggregationQueryServiceImplTests {
     }
 
     @Test
-    void vehicleHealthResolvesVehicleAndMaintenanceWithScheduleDegraded() {
+    void vehicleHealthResolvesVehicleMaintenanceAndSchedule() {
         when(fleetClient.getVehicleById(9L)).thenReturn(vehicle());
         when(maintenanceClient.getOpenOrdersByVehicle(9L)).thenReturn(List.of(maintenanceOrder("OPEN")));
         when(maintenanceClient.getHistoryByVehicle(9L)).thenReturn(List.of(maintenanceOrder("COMPLETED")));
+        when(maintenanceClient.getScheduleByVehicle(9L)).thenReturn(new MaintenanceScheduleClientResource(
+                5L, 9L, "ACTIVE", List.of(), null, null
+        ));
 
         var health = service.getVehicleHealth(9L);
 
         assertThat(health.vehicle().id()).isEqualTo(9L);
         assertThat(health.openMaintenanceOrders()).hasSize(1);
         assertThat(health.maintenanceHistory()).hasSize(1);
-        assertThat(health.degradedSections()).anyMatch(section -> section.section().equals("maintenance.schedules"));
+        assertThat(health.maintenanceSchedule().id()).isEqualTo(5L);
+        assertThat(health.degradedSections()).isEmpty();
     }
 
     private RouteClientResource route() {

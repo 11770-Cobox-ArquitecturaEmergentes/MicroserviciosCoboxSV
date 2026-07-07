@@ -3,6 +3,9 @@ package org.upc.desktopbffservice.desktop.application.internal.queryservices;
 import feign.FeignException;
 import org.springframework.stereotype.Service;
 import org.upc.desktopbffservice.desktop.domain.exceptions.DesktopResourceNotFoundException;
+import org.upc.desktopbffservice.desktop.infrastructure.clients.aivalidation.AiAlertClientResource;
+import org.upc.desktopbffservice.desktop.infrastructure.clients.aivalidation.AiValidationClient;
+import org.upc.desktopbffservice.desktop.infrastructure.clients.aivalidation.EvidenceAnalysisClientResource;
 import org.upc.desktopbffservice.desktop.infrastructure.clients.delivery.DeliveryClient;
 import org.upc.desktopbffservice.desktop.infrastructure.clients.delivery.OrderClientResource;
 import org.upc.desktopbffservice.desktop.infrastructure.clients.fleet.*;
@@ -10,6 +13,7 @@ import org.upc.desktopbffservice.desktop.infrastructure.clients.incident.Inciden
 import org.upc.desktopbffservice.desktop.infrastructure.clients.incident.IncidentClientResource;
 import org.upc.desktopbffservice.desktop.infrastructure.clients.maintenance.MaintenanceClient;
 import org.upc.desktopbffservice.desktop.infrastructure.clients.maintenance.MaintenanceOrderClientResource;
+import org.upc.desktopbffservice.desktop.infrastructure.clients.maintenance.MaintenanceScheduleClientResource;
 import org.upc.desktopbffservice.desktop.interfaces.rest.resources.*;
 
 import java.time.Instant;
@@ -27,15 +31,18 @@ public class DesktopAggregationQueryServiceImpl implements DesktopAggregationQue
     private final DeliveryClient deliveryClient;
     private final IncidentClient incidentClient;
     private final MaintenanceClient maintenanceClient;
+    private final AiValidationClient aiValidationClient;
 
     public DesktopAggregationQueryServiceImpl(FleetClient fleetClient,
                                               DeliveryClient deliveryClient,
                                               IncidentClient incidentClient,
-                                              MaintenanceClient maintenanceClient) {
+                                              MaintenanceClient maintenanceClient,
+                                              AiValidationClient aiValidationClient) {
         this.fleetClient = fleetClient;
         this.deliveryClient = deliveryClient;
         this.incidentClient = incidentClient;
         this.maintenanceClient = maintenanceClient;
+        this.aiValidationClient = aiValidationClient;
     }
 
     @Override
@@ -77,14 +84,49 @@ public class DesktopAggregationQueryServiceImpl implements DesktopAggregationQue
                 () -> safeList(maintenanceClient.getOpenOrdersByVehicle(vehicleId)).stream().map(this::toMaintenanceSummary).toList());
         var history = optionalSection("maintenance.history", degraded,
                 () -> safeList(maintenanceClient.getHistoryByVehicle(vehicleId)).stream().map(this::toMaintenanceSummary).toList());
-        degraded.add(new DegradedSectionResource("maintenance.schedules", "Maintenance schedules by vehicle are not exposed by maintenance-service yet"));
+        var schedule = optionalSection("maintenance.schedule", degraded,
+                () -> toMaintenanceScheduleSummary(maintenanceClient.getScheduleByVehicle(vehicleId)));
         return new VehicleHealthResource(
                 Instant.now(),
                 toVehicleSummary(vehicle),
                 openOrders == null ? List.of() : openOrders,
                 history == null ? List.of() : history,
+                schedule,
                 degraded
         );
+    }
+
+    @Override
+    public List<SmartVisionAlertOverviewResource> getSmartVisionAlerts(String status) {
+        var alerts = status == null || status.isBlank()
+                ? aiValidationClient.getAlerts()
+                : aiValidationClient.getAlertsByStatus(status);
+        return safeList(alerts).stream()
+                .map(this::toSmartVisionAlertOverview)
+                .toList();
+    }
+
+    @Override
+    public List<SmartVisionAnalysisOverviewResource> getSmartVisionAnalyses(String status, Long driverId, Long routeId, Long orderId) {
+        var analyses = safeList(aiValidationClient.getAnalyses(status, driverId, routeId, orderId));
+        List<AiAlertClientResource> alerts;
+        String alertDegradation = null;
+        try {
+            alerts = safeList(aiValidationClient.getAlerts());
+        } catch (Exception ex) {
+            alerts = List.of();
+            alertDegradation = reason(ex);
+        }
+        var alertsByEvidence = alerts.stream()
+                .filter(alert -> alert.clientEvidenceId() != null)
+                .collect(Collectors.groupingBy(AiAlertClientResource::clientEvidenceId));
+        var finalAlertDegradation = alertDegradation;
+        return analyses.stream()
+                .map(analysis -> toSmartVisionAnalysisOverview(
+                        analysis,
+                        safeList(alertsByEvidence.get(analysis.clientEvidenceId())),
+                        finalAlertDegradation))
+                .toList();
     }
 
     private FleetDashboardResource dashboardFleet(List<DegradedSectionResource> degraded) {
@@ -232,6 +274,121 @@ public class DesktopAggregationQueryServiceImpl implements DesktopAggregationQue
                 order.totalCostAmount(),
                 order.totalCostCurrency(),
                 order.technicianId()
+        );
+    }
+
+    private MaintenanceScheduleSummaryResource toMaintenanceScheduleSummary(MaintenanceScheduleClientResource schedule) {
+        if (schedule == null) {
+            return null;
+        }
+        return new MaintenanceScheduleSummaryResource(
+                schedule.id(),
+                schedule.vehicleId(),
+                schedule.status(),
+                safeList(schedule.rules()).stream()
+                        .map(rule -> new MaintenanceRuleSummaryResource(rule.name(), rule.thresholdKm(), rule.thresholdDays()))
+                        .toList(),
+                schedule.lastEvaluationAt(),
+                schedule.nextEvaluationAt()
+        );
+    }
+
+    private SmartVisionAlertOverviewResource toSmartVisionAlertOverview(AiAlertClientResource alert) {
+        var degraded = new ArrayList<DegradedSectionResource>();
+        var analysis = optionalSection("smartvision.analysis", degraded,
+                () -> alert.clientEvidenceId() == null ? null : aiValidationClient.getAnalysis(alert.clientEvidenceId()));
+        var route = analysis == null || analysis.routeId() == null
+                ? null
+                : optionalSection("route", degraded, () -> toRouteSummary(fleetClient.getRouteById(analysis.routeId())));
+        var driver = analysis == null || analysis.driverId() == null
+                ? null
+                : optionalSection("driver", degraded, () -> toDriverSummary(fleetClient.getDriverById(analysis.driverId())));
+        var vehicle = route == null || route.vehicleId() == null
+                ? null
+                : optionalSection("vehicle", degraded, () -> toVehicleSummary(fleetClient.getVehicleById(route.vehicleId())));
+        var order = analysis == null || analysis.orderId() == null
+                ? null
+                : optionalSection("order", degraded, () -> toOrderSummary(deliveryClient.getOrderById(analysis.orderId())));
+        return new SmartVisionAlertOverviewResource(
+                toSmartVisionAlert(alert),
+                toSmartVisionAnalysis(analysis),
+                driver,
+                route,
+                vehicle,
+                order,
+                degraded
+        );
+    }
+
+    private SmartVisionAnalysisOverviewResource toSmartVisionAnalysisOverview(
+            EvidenceAnalysisClientResource analysis,
+            List<AiAlertClientResource> alerts,
+            String alertDegradation) {
+        var degraded = new ArrayList<DegradedSectionResource>();
+        if (alertDegradation != null) {
+            degraded.add(new DegradedSectionResource("smartvision.alerts", alertDegradation));
+        }
+        var route = analysis.routeId() == null
+                ? null
+                : optionalSection("route", degraded, () -> toRouteSummary(fleetClient.getRouteById(analysis.routeId())));
+        var driver = analysis.driverId() == null
+                ? null
+                : optionalSection("driver", degraded, () -> toDriverSummary(fleetClient.getDriverById(analysis.driverId())));
+        var vehicle = route == null || route.vehicleId() == null
+                ? null
+                : optionalSection("vehicle", degraded, () -> toVehicleSummary(fleetClient.getVehicleById(route.vehicleId())));
+        var order = analysis.orderId() == null
+                ? null
+                : optionalSection("order", degraded, () -> toOrderSummary(deliveryClient.getOrderById(analysis.orderId())));
+        return new SmartVisionAnalysisOverviewResource(
+                toSmartVisionAnalysis(analysis),
+                alerts.stream().map(this::toSmartVisionAlert).toList(),
+                driver,
+                route,
+                vehicle,
+                order,
+                degraded
+        );
+    }
+
+    private SmartVisionAlertResource toSmartVisionAlert(AiAlertClientResource alert) {
+        if (alert == null) {
+            return null;
+        }
+        return new SmartVisionAlertResource(
+                alert.alertId(),
+                alert.clientEvidenceId(),
+                alert.type(),
+                alert.severity(),
+                alert.status(),
+                alert.message(),
+                alert.createdAt(),
+                alert.acknowledgedAt(),
+                alert.resolvedAt(),
+                alert.resolutionNotes(),
+                alert.linkedIncidentId()
+        );
+    }
+
+    private SmartVisionAnalysisResource toSmartVisionAnalysis(EvidenceAnalysisClientResource analysis) {
+        if (analysis == null) {
+            return null;
+        }
+        return new SmartVisionAnalysisResource(
+                analysis.clientEvidenceId(),
+                analysis.objectKey(),
+                analysis.driverId(),
+                analysis.orderId(),
+                analysis.routeId(),
+                analysis.evidenceType(),
+                analysis.status(),
+                analysis.provider(),
+                analysis.confidenceScore(),
+                analysis.fraudScore(),
+                analysis.validationSummary(),
+                analysis.failureReason(),
+                analysis.createdAt(),
+                analysis.completedAt()
         );
     }
 

@@ -11,6 +11,7 @@ import org.upc.fleetservice.fleet.domain.model.aggregates.Vehicle;
 import org.upc.fleetservice.fleet.domain.model.commands.*;
 import org.upc.fleetservice.fleet.domain.model.valueobjects.OrderId;
 import org.upc.fleetservice.fleet.domain.services.RouteCommandService;
+import org.upc.fleetservice.fleet.infrastructure.messaging.FleetReportEventPublisher;
 import org.upc.fleetservice.fleet.infrastructure.persistence.jpa.repositories.DriverRepository;
 import org.upc.fleetservice.fleet.infrastructure.persistence.jpa.repositories.RouteRepository;
 import org.upc.fleetservice.fleet.infrastructure.persistence.jpa.repositories.VehicleRepository;
@@ -23,17 +24,20 @@ public class RouteCommandServiceImpl implements RouteCommandService {
     private final DriverRepository driverRepository;
     private final VehicleRepository vehicleRepository;
     private final ExternalOrderService externalOrderService;
-    public RouteCommandServiceImpl(RouteRepository routeRepository, DriverRepository driverRepository, VehicleRepository vehicleRepository,ExternalOrderService externalOrderService) {
+    private final FleetReportEventPublisher reportEventPublisher;
+    public RouteCommandServiceImpl(RouteRepository routeRepository, DriverRepository driverRepository, VehicleRepository vehicleRepository, ExternalOrderService externalOrderService, FleetReportEventPublisher reportEventPublisher) {
         this.driverRepository = driverRepository;
         this.vehicleRepository = vehicleRepository;
         this.routeRepository = routeRepository;
         this.externalOrderService=externalOrderService;
+        this.reportEventPublisher = reportEventPublisher;
     }
 
     @Override
     public Long handle(CreateRouteCommand command) {
         var route = new Route(command);
         routeRepository.save(route);
+        reportEventPublisher.publishRoute("fleet.route-created", route);
         return route.getId();
     }
     @Override
@@ -48,6 +52,7 @@ public class RouteCommandServiceImpl implements RouteCommandService {
         route.addOrder(orderId);
         externalOrderService.markAsInTransitOrderById(command.orderId());
         routeRepository.save(route);
+        reportEventPublisher.publishRoute("fleet.route-order-added", route);
     }
 
     @Override
@@ -62,6 +67,7 @@ public class RouteCommandServiceImpl implements RouteCommandService {
         var orderId= new OrderId(command.orderId());
         route.addDeliveredOrder(orderId);
         routeRepository.save(route);
+        reportEventPublisher.publishRoute("fleet.route-order-delivered", route);
     }
     @Override
     public void handle(AssignDriverToRouteCommand command) {
@@ -82,6 +88,7 @@ public class RouteCommandServiceImpl implements RouteCommandService {
         driver.markAsInRoute();
         route.assignDriver(driver);
         routeRepository.save(route);
+        reportEventPublisher.publishRoute("fleet.route-driver-assigned", route);
     }
 
     @Override
@@ -107,6 +114,7 @@ public class RouteCommandServiceImpl implements RouteCommandService {
         vehicle.markAsInRoute();
         route.assignVehicle(vehicle);
         routeRepository.save(route);
+        reportEventPublisher.publishRoute("fleet.route-vehicle-assigned", route);
     }
 
     @Override
@@ -114,6 +122,7 @@ public class RouteCommandServiceImpl implements RouteCommandService {
         routeRepository.findById(command.routeId()).map(route -> {
             route.markAsInProgress();
             routeRepository.save(route);
+            reportEventPublisher.publishRoute("fleet.route-started", route);
             return route.getId();
         }).orElseThrow(() -> new RouteNotFoundException(command.routeId()));
     }

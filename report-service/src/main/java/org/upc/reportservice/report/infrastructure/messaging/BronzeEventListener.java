@@ -1,5 +1,6 @@
 package org.upc.reportservice.report.infrastructure.messaging;
 
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 import org.upc.reportservice.report.domain.model.entities.BronzeEvent;
@@ -15,11 +16,10 @@ public class BronzeEventListener {
     }
 
     @RabbitListener(queues = RabbitMQConfig.BRONZE_QUEUE)
-    public void receiveIncidentCreated(String message) {
-        System.out.println("Received message in Bronze Layer: " + message);
+    public void receiveOperationalEvent(String payload, Message message) {
         BronzeEvent event = new BronzeEvent();
-        event.setEventType("INCIDENT_CREATED");
-        event.setRawData(message);
+        event.setEventType(message.getMessageProperties().getReceivedRoutingKey());
+        event.setRawData(payload);
         bronzeEventRepository.save(event);
     }
 }

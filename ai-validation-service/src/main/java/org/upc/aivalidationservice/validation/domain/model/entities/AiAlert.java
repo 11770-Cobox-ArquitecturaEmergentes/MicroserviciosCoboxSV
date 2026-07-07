@@ -46,6 +46,15 @@ public class AiAlert {
     @Column(nullable = false)
     private Instant createdAt;
 
+    private Instant acknowledgedAt;
+
+    private Instant resolvedAt;
+
+    @Column(length = 2000)
+    private String resolutionNotes;
+
+    private UUID linkedIncidentId;
+
     public AiAlert(UUID clientEvidenceId, String type, AlertSeverity severity, String message) {
         this.alertId = UUID.randomUUID();
         this.clientEvidenceId = clientEvidenceId;
@@ -54,5 +63,34 @@ public class AiAlert {
         this.status = AlertStatus.OPEN;
         this.message = message;
         this.createdAt = Instant.now();
+    }
+
+    public void acknowledge() {
+        if (this.status == AlertStatus.RESOLVED) {
+            throw new IllegalStateException("Resolved alerts cannot be acknowledged");
+        }
+        if (this.status == AlertStatus.OPEN) {
+            this.status = AlertStatus.ACKNOWLEDGED;
+            this.acknowledgedAt = Instant.now();
+        }
+    }
+
+    public void resolve(String notes) {
+        if (this.status == AlertStatus.RESOLVED) {
+            return;
+        }
+        this.status = AlertStatus.RESOLVED;
+        this.resolvedAt = Instant.now();
+        this.resolutionNotes = truncate(notes);
+    }
+
+    public void linkIncident(UUID incidentId) {
+        this.linkedIncidentId = incidentId;
+        acknowledge();
+    }
+
+    private String truncate(String value) {
+        if (value == null) return null;
+        return value.length() <= 2000 ? value : value.substring(0, 2000);
     }
 }

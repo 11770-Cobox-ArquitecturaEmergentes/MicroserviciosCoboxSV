@@ -9,7 +9,7 @@ public class RabbitMQConfig {
 
     public static final String REPORT_EXCHANGE = "report.exchange";
     public static final String BRONZE_QUEUE = "report.bronze.queue";
-    public static final String INCIDENT_ROUTING_KEY = "incident.created";
+    public static final String OPERATIONAL_ROUTING_KEY = "#";
 
     @Bean
     public TopicExchange reportExchange() {
@@ -23,6 +23,6 @@ public class RabbitMQConfig {
 
     @Bean
     public Binding bindingBronzeQueue(Queue bronzeQueue, TopicExchange reportExchange) {
-        return BindingBuilder.bind(bronzeQueue).to(reportExchange).with(INCIDENT_ROUTING_KEY);
+        return BindingBuilder.bind(bronzeQueue).to(reportExchange).with(OPERATIONAL_ROUTING_KEY);
     }
 }
