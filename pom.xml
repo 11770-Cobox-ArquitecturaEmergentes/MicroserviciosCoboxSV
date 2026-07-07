@@ -39,5 +39,6 @@
         <module>incident-service</module>
         <module>maintenance-service</module>
         <module>support-service</module>
+        <module>report-service</module>
     </modules>
 </project>

@@ -189,6 +189,21 @@ spring:
           filters:
             - PreserveHostHeader
 
+        - id: report-service-docs
+          uri: lb://report-service
+          predicates:
+            - Path=/report-service/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+            - PreserveHostHeader
+
+        - id: report-service-route
+          uri: lb://report-service
+          predicates:
+            - Path=/api/v1/reports/**
+          filters:
+            - PreserveHostHeader
+
 auth0:
   audience: "${AUTH0_AUDIENCE:https://api.coboxsv.dev}"
 
@@ -218,6 +233,8 @@ springdoc:
         url: /maintenance-service/v3/api-docs
       - name: support-service
         url: /support-service/v3/api-docs
+      - name: report-service
+        url: /report-service/v3/api-docs
 
 # ==========================================
 # Rate Limiting Configuration
@@ -293,5 +310,10 @@ gateway:
       # Ticket Endpoints
       "[/api/v1/tickets/**]":
         max-requests: 50
+        window-seconds: 10
+
+      # Report Endpoints
+      "[/api/v1/reports/**]":
+        max-requests: 100
         window-seconds: 10
 
