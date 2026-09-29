@@ -1,4 +1,4 @@
-name: Build, Push to ECR and Deploy to EC2
+name: Build, Push to ECR and Deploy to ECS
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 env:
   # Se recomienda manejar estos valores como variables o secretos en GitHub
   AWS_REGION: us-east-1
-  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Ingresa tu ID: 474749358578 en los secretos de GitHub
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Ingresa tu ID: 915290282773 en los secretos de GitHub
 
 permissions:
   contents: read
@@ -73,215 +73,47 @@ jobs:
           done
 
   deploy:
-    name: Deploy on EC2 via SSH
+    name: Deploy to AWS ECS
     needs: build-and-push
     runs-on: ubuntu-latest
-    env:
-      AWS_REGION: us-east-1
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up SSH key
-        run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
-          chmod 600 key.pem
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/CoboxGithubOidcRole
+          role-session-name: gha-ecs-deploy
 
-      - name: Prep remote dir (/opt/cobox)
-        run: |
-          SSH_OPTS="-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o ConnectionAttempts=3 -vvv"
-          ssh $SSH_OPTS -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            'set -e; sudo mkdir -p /opt/cobox/env /opt/cobox/data/certbot/conf /opt/cobox/data/certbot/www && sudo chown -R $(whoami):$(whoami) /opt/cobox'
-
-      - name: Copy runtime files to EC2
-        run: |
-          SCP_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o ConnectionAttempts=3 -vvv"
-          scp $SCP_OPTS -i key.pem docker-compose.aws.yml nginx.conf prometheus.yml \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/opt/cobox/
-
-      - name: Deploy remotely (Pull & Up)
+      - name: Update ECS Services (dev)
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
         run: |
           set -euo pipefail
-          SSH_OPTS="-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o ConnectionAttempts=3"
-          rc=1
+          ECS_CLUSTER="cobox-dev"
 
-          for n in 1; do
-            if ssh $SSH_OPTS -i key.pem "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
-              AWS_REGION='${{ env.AWS_REGION }}' AWS_ACCOUNT_ID='${{ env.AWS_ACCOUNT_ID }}' bash -se <<'EOSSH'
-          set -euo pipefail
+          declare -a svc=("config-service" "eureka-service" "iam-service" "fleet-service" "delivery-service" "support-service" "incident-service" "maintenance-service" "edge-service" "mobile-bff-service" "desktop-bff-service" "ai-validation-service" "report-service" "gateway-service")
 
-          ECR="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-          TAG=latest
-
-          cd /opt/cobox
-
-          printf "ECR=%s\nTAG=%s\n" "$ECR" "$TAG" > .env
-          [ -f /opt/cobox/cobox-env.sh ] && . /opt/cobox/cobox-env.sh || true
-
-          required_files=(
-            /opt/cobox/docker-compose.aws.yml
-            /opt/cobox/nginx.conf
-            /opt/cobox/prometheus.yml
-            /opt/cobox/env/iam.env
-            /opt/cobox/env/fleet.env
-            /opt/cobox/env/delivery.env
-            /opt/cobox/env/support.env
-            /opt/cobox/env/edge.env
-            /opt/cobox/env/mobile-bff.env        
-            /opt/cobox/env/ai-validation.env
-            /opt/cobox/env/report.env
-            /opt/cobox/env/incident.env
-            /opt/cobox/env/maintenance.env
-            /opt/cobox/env/rabbitmq.env
-            /opt/cobox/env/grafana.env
-          )
-
-          for file in "${required_files[@]}"; do
-            if [ ! -s "$file" ]; then
-              echo "[ERROR] Required runtime file is missing or empty: $file"
-              exit 1
-            fi
+          for s in "${svc[@]}"; do
+            echo "=== Forzando nuevo despliegue de: $s ==="
+            aws ecs update-service \
+              --cluster "$ECS_CLUSTER" \
+              --service "cobox-dev-${s}" \
+              --force-new-deployment \
+              --region "$AWS_REGION" \
+              >/dev/null
           done
 
-          validate_env_key() {
-            file="$1"
-            key="$2"
-            if ! grep -Eq "^${key}=.+" "$file"; then
-              echo "[ERROR] Missing ${key} in ${file}"
-              exit 1
-            fi
-          }
-
-          for file in \
-            /opt/cobox/env/iam.env \
-            /opt/cobox/env/fleet.env \
-            /opt/cobox/env/delivery.env \
-            /opt/cobox/env/support.env \
-            /opt/cobox/env/edge.env \
-            /opt/cobox/env/mobile-bff.env \
-            /opt/cobox/env/ai-validation.env \
-            /opt/cobox/env/report.env \
-            /opt/cobox/env/incident.env \
-            /opt/cobox/env/maintenance.env; do
-            validate_env_key "$file" POSTGRES_HOST
-            validate_env_key "$file" POSTGRES_PORT
-            validate_env_key "$file" POSTGRES_DATABASE
-            validate_env_key "$file" POSTGRES_USER
-            validate_env_key "$file" POSTGRES_PASSWORD
+          echo "=== Esperando a que los servicios queden estables ==="
+          for s in "${svc[@]}"; do
+            echo "--- Esperando estabilidad de: $s ---"
+            aws ecs wait services-stable \
+              --cluster "$ECS_CLUSTER" \
+              --services "cobox-dev-${s}" \
+              --region "$AWS_REGION"
           done
 
-          validate_env_key /opt/cobox/env/rabbitmq.env RABBITMQ_DEFAULT_USER
-          validate_env_key /opt/cobox/env/rabbitmq.env RABBITMQ_DEFAULT_PASS
-          rabbitmq_user="$(awk -F= '/^RABBITMQ_DEFAULT_USER=/{print substr($0, index($0, "=") + 1)}' /opt/cobox/env/rabbitmq.env | tail -n 1)"
-          rabbitmq_pass="$(awk -F= '/^RABBITMQ_DEFAULT_PASS=/{print substr($0, index($0, "=") + 1)}' /opt/cobox/env/rabbitmq.env | tail -n 1)"
-          if [ "$rabbitmq_user" = "guest" ] || [ "$rabbitmq_pass" = "guest" ]; then
-            echo "[ERROR] RabbitMQ guest/guest credentials are not allowed in AWS"
-            exit 1
-          fi
-
-          for file in /opt/cobox/env/mobile-bff.env /opt/cobox/env/ai-validation.env; do
-            validate_env_key "$file" RABBITMQ_USERNAME
-            validate_env_key "$file" RABBITMQ_PASSWORD
-            app_rabbitmq_user="$(awk -F= '/^RABBITMQ_USERNAME=/{print substr($0, index($0, "=") + 1)}' "$file" | tail -n 1)"
-            app_rabbitmq_pass="$(awk -F= '/^RABBITMQ_PASSWORD=/{print substr($0, index($0, "=") + 1)}' "$file" | tail -n 1)"
-            if [ "$app_rabbitmq_user" != "$rabbitmq_user" ] || [ "$app_rabbitmq_pass" != "$rabbitmq_pass" ]; then
-              echo "[ERROR] RabbitMQ application credentials in ${file} must match rabbitmq.env"
-              exit 1
-            fi
-          done
-
-          validate_env_key /opt/cobox/env/grafana.env GF_SECURITY_ADMIN_PASSWORD
-          grafana_password="$(awk -F= '/^GF_SECURITY_ADMIN_PASSWORD=/{print substr($0, index($0, "=") + 1)}' /opt/cobox/env/grafana.env | tail -n 1)"
-          if [ "$grafana_password" = "admin" ]; then
-            echo "[ERROR] Grafana admin password must not be the default value"
-            exit 1
-          fi
-
-          sudo systemctl is-active --quiet docker || sudo systemctl start docker
-
-          if docker compose version >/dev/null 2>&1; then
-            DC="docker compose"
-          elif command -v docker-compose >/dev/null 2>&1; then
-            DC="docker-compose"
-          else
-            echo "[ERROR] docker compose no instalado"; exit 1
-          fi
-
-          # Autenticación en ECR desde la instancia EC2
-          aws ecr get-login-password --region "$AWS_REGION" \
-            | docker login --username AWS --password-stdin "$ECR"
-
-          export COMPOSE_PROJECT_NAME=cobox
-          export COMPOSE_HTTP_TIMEOUT=600
-
-          echo "=== IMAGES (resolved) ==="
-          $DC -f docker-compose.aws.yml config | sed -n 's/^[[:space:]]*image:[[:space:]]*//p'
-
-          echo "=== Docker cleanup before deploy ==="
-          docker container prune -f || true
-          docker image prune -f || true
-          docker builder prune -f || true
-          df -h /
-          docker system df || true
-
-          echo "=== Pull images ==="
-          $DC -f docker-compose.aws.yml pull
-
-          echo "=== Compose up ==="
-          set +e
-          $DC -f docker-compose.aws.yml up -d
-          UP_RC=$?
-          set -e
-
-          if [ "$UP_RC" -ne 0 ]; then
-            echo "[WARN] docker compose up returned rc=$UP_RC. Continuing to health diagnostics..."
-          fi
-
-          echo "=== Esperando a que los servicios estén healthy ==="
-          for i in $(seq 1 30); do
-            BAD=$($DC -f docker-compose.aws.yml ps 2>/dev/null | awk '/unhealthy|Exit/ {print $1}')
-            STARTING=$($DC -f docker-compose.aws.yml ps 2>/dev/null | awk '/starting/ {print $1}')
-            echo "Intento $i: BAD=[$BAD] STARTING=[$STARTING]"
-            if [ -z "$BAD" ] && [ -z "$STARTING" ]; then
-              echo "[OK] Todos los servicios están healthy"
-              break
-            fi
-            sleep 10
-          done
-
-          echo "=== Compose status ==="
-          $DC -f docker-compose.aws.yml ps || true
-
-          BAD=$($DC -f docker-compose.aws.yml ps 2>/dev/null | awk '/unhealthy|Exit/ {print $1}')
-          STARTING=$($DC -f docker-compose.aws.yml ps 2>/dev/null | awk '/starting/ {print $1}')
-
-          if [ -n "$BAD" ] || [ -n "$STARTING" ]; then
-            echo "=== Dumping logs for: $BAD $STARTING ==="
-            for s in $BAD $STARTING; do
-              echo "--- INSPECT: $s ---"
-              docker inspect "$s" --format 'Status={{.State.Status}} ExitCode={{.State.ExitCode}} OOMKilled={{.State.OOMKilled}} Restarting={{.State.Restarting}}' || true
-
-              echo "--- HEALTH: $s ---"
-              docker inspect "$s" --format '{{range .State.Health.Log}}{{println .ExitCode}}{{println .Output}}{{end}}' || true
-
-              echo "--- LOGS: $s (last 200) ---"
-              docker logs --tail 200 "$s" || true
-            done
-            exit 1
-          fi
-
-          echo "[OK] Deploy done"
-          EOSSH
-            then
-              rc=0
-              break
-            else
-              rc=$?
-              echo "[WARN] SSH attempt $n failed (rc=$rc); retrying in 5s..."
-              sleep 5
-            fi
-          done
-
-          [ $rc -eq 0 ] || { echo "[ERROR] SSH failed after retries"; exit 1; }
+          echo "[OK] Deploy done: 14 servicios actualizados y estables en $ECS_CLUSTER"
