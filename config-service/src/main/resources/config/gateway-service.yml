@@ -45,27 +45,11 @@ spring:
           lower-case-service-id: true
 
       routes:
-        - id: iam-service-docs
-          uri: lb://iam-service
-          predicates:
-            - Path=/iam-service/v3/api-docs/**
-          filters:
-            - StripPrefix=1
-            - PreserveHostHeader
-
         - id: iam-service-route
           uri: lb://iam-service
           predicates:
             - Path=/api/v1/roles/**,/api/v1/users/**
           filters:
-            - PreserveHostHeader
-
-        - id: fleet-service-docs
-          uri: lb://fleet-service
-          predicates:
-            - Path=/fleet-service/v3/api-docs/**
-          filters:
-            - StripPrefix=1
             - PreserveHostHeader
 
         - id: fleet-service-route
@@ -75,27 +59,11 @@ spring:
           filters:
             - PreserveHostHeader
 
-        - id: delivery-service-docs
-          uri: lb://delivery-service
-          predicates:
-            - Path=/delivery-service/v3/api-docs/**
-          filters:
-            - StripPrefix=1
-            - PreserveHostHeader
-
         - id: delivery-service-route
           uri: lb://delivery-service
           predicates:
             - Path=/api/v1/client/**,/api/v1/orders/**
           filters:
-            - PreserveHostHeader
-
-        - id: edge-service-docs
-          uri: lb://edge-service
-          predicates:
-            - Path=/edge-service/v3/api-docs/**
-          filters:
-            - StripPrefix=1
             - PreserveHostHeader
 
         - id: edge-service-route
@@ -105,27 +73,11 @@ spring:
           filters:
             - PreserveHostHeader
 
-        - id: mobile-bff-service-docs
-          uri: lb://mobile-bff-service
-          predicates:
-            - Path=/mobile-bff-service/v3/api-docs/**
-          filters:
-            - StripPrefix=1
-            - PreserveHostHeader
-
         - id: mobile-bff-service-route
           uri: lb://mobile-bff-service
           predicates:
             - Path=/api/v1/mobile/**
           filters:
-            - PreserveHostHeader
-
-        - id: desktop-bff-service-docs
-          uri: lb://desktop-bff-service
-          predicates:
-            - Path=/desktop-bff-service/v3/api-docs/**
-          filters:
-            - StripPrefix=1
             - PreserveHostHeader
 
         - id: desktop-bff-service-route
@@ -135,32 +87,11 @@ spring:
           filters:
             - PreserveHostHeader
 
-        - id: ai-validation-service-docs
-          uri: lb://ai-validation-service
-          predicates:
-            - Path=/ai-validation-service/v3/api-docs/**
-          filters:
-            - StripPrefix=1
-            - PreserveHostHeader
-
         - id: ai-validation-service-route
           uri: lb://ai-validation-service
           predicates:
             - Path=/api/v1/ai-validation/**
           filters:
-            - PreserveHostHeader
-
-        - id: incident-service-docs
-          uri: lb://incident-service
-          predicates:
-            - Path=/incident-service/v3/api-docs/**
-            
-        - id: support-service-docs
-          uri: lb://support-service
-          predicates:
-            - Path=/support-service/v3/api-docs/**
-          filters:
-            - StripPrefix=1
             - PreserveHostHeader
 
         - id: incident-service-route
@@ -170,31 +101,18 @@ spring:
           filters:
             - PreserveHostHeader
 
-        - id: maintenance-service-docs
-          uri: lb://maintenance-service
-          predicates:
-            - Path=/maintenance-service/v3/api-docs/**
-          filters:
-            - StripPrefix=1
-            - PreserveHostHeader
-
         - id: maintenance-service-route
           uri: lb://maintenance-service
           predicates:
             - Path=/api/v1/maintenance-schedules/**,/api/v1/maintenance-orders/**
+          filters:
+            - PreserveHostHeader
+
         - id: support-service-route
           uri: lb://support-service
           predicates:
             - Path=/api/v1/tickets/**
           filters:
-            - PreserveHostHeader
-
-        - id: report-service-docs
-          uri: lb://report-service
-          predicates:
-            - Path=/report-service/v3/api-docs/**
-          filters:
-            - StripPrefix=1
             - PreserveHostHeader
 
         - id: report-service-route
