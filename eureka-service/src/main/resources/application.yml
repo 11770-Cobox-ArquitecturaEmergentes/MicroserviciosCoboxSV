@@ -4,8 +4,6 @@ server:
 spring:
   application:
     name: eureka-service
-  config:
-    import: "optional:configserver:http://config-service:8888"
 
 eureka:
   client:

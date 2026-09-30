@@ -55,7 +55,7 @@ jobs:
           TAG="$IMAGE_TAG"
 
           # Array con los nombres exactos de las carpetas de tu monorepo
-          declare -a svc=("config-service" "eureka-service" "iam-service" "fleet-service" "delivery-service" "support-service" "incident-service" "maintenance-service" "edge-service" "mobile-bff-service" "desktop-bff-service" "ai-validation-service" "report-service" "gateway-service")
+          declare -a svc=("eureka-service" "iam-service" "fleet-service" "delivery-service" "support-service" "incident-service" "maintenance-service" "edge-service" "mobile-bff-service" "desktop-bff-service" "ai-validation-service" "report-service" "gateway-service")
 
           for s in "${svc[@]}"; do
             echo "Construyendo y subiendo imagen para: $s"
@@ -95,7 +95,7 @@ jobs:
           set -euo pipefail
           ECS_CLUSTER="cobox-dev"
 
-          declare -a svc=("config-service" "eureka-service" "iam-service" "fleet-service" "delivery-service" "support-service" "incident-service" "maintenance-service" "edge-service" "mobile-bff-service" "desktop-bff-service" "ai-validation-service" "report-service" "gateway-service")
+          declare -a svc=("eureka-service" "iam-service" "fleet-service" "delivery-service" "support-service" "incident-service" "maintenance-service" "edge-service" "mobile-bff-service" "desktop-bff-service" "ai-validation-service" "report-service" "gateway-service")
 
           for s in "${svc[@]}"; do
             echo "=== Forzando nuevo despliegue de: $s ==="
@@ -116,4 +116,4 @@ jobs:
               --region "$AWS_REGION"
           done
 
-          echo "[OK] Deploy done: 14 servicios actualizados y estables en $ECS_CLUSTER"
+          echo "[OK] Deploy done: 13 servicios actualizados y estables en $ECS_CLUSTER"
