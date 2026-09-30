@@ -2,7 +2,7 @@ name: Build, Push to ECR and Deploy to ECS
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "env-develop" ]
 
 env:
   # Se recomienda manejar estos valores como variables o secretos en GitHub
